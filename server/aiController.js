@@ -1,5 +1,5 @@
 /**
- * AI Controller - Gemini 2.0 Flash-Lite
+ * AI Controller - Gemini 2.0 Flash Exp
  * Handles AI response generation with TOON format output
  * Integrates RAG for context-aware responses
  * TOON Format: response[1]{text,emotion}: <text>,<emotion>
@@ -74,7 +74,7 @@ User: "Thank you!"
 response[1]{text,emotion}: You're welcome! Happy to help,happy`;
 
 /**
- * Generate AI response using Gemini 1.5 Flash
+ * Generate AI response using Gemini 2.0 Flash Exp
  * @param {string} userText - User's input text/transcript
  * @param {Array} history - Optional conversation history (future use)
  * @returns {Promise<Object>} - Parsed response with text and emotion
@@ -105,9 +105,9 @@ export async function generateResponse(userText, history = []) {
     });
 
     // Initialize model with system instruction
-    // Using gemini-1.5-flash for faster responses (optimized for speed)
+    // Using gemini-2.0-flash-exp for fastest responses (optimized for speed)
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash-exp',
       systemInstruction: SYSTEM_PROMPT,
       generationConfig: {
         temperature: 0.7,
