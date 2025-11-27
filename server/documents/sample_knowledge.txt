@@ -1,0 +1,134 @@
+CUSTOMER SUPPORT KNOWLEDGE BASE - SAMPLE DATA
+==============================================
+
+Refund Policy
+-------------
+We offer a 30-day money-back guarantee on all purchases. To request a refund:
+1. Contact our support team with your order number
+2. Provide a brief reason for the refund request
+3. Refunds are processed within 5-7 business days
+4. The refund will be credited to your original payment method
+
+Please note: Digital products can only be refunded within 7 days if they have not been downloaded or accessed.
+
+Shipping Information
+--------------------
+Standard Shipping: 5-7 business days (Free on orders over $50)
+Express Shipping: 2-3 business days ($15.99)
+Overnight Shipping: 1 business day ($29.99)
+
+International orders may take 10-21 business days depending on customs processing.
+
+All orders are shipped from our warehouse in California. You will receive a tracking number via email once your order ships.
+
+Address Changes
+---------------
+You can update your shipping address up until your order has been shipped. To change your address:
+1. Log into your account
+2. Go to "Orders" section
+3. Click on the active order
+4. Select "Edit Shipping Address"
+
+If your order has already shipped, please contact our support team immediately. We may be able to intercept the package or arrange for forwarding.
+
+Account Management
+------------------
+Creating an Account:
+- Visit our website and click "Sign Up"
+- Enter your email and create a password
+- Verify your email address
+- Complete your profile
+
+Password Reset:
+- Click "Forgot Password" on the login page
+- Enter your registered email
+- Check your email for reset instructions
+- Reset link expires in 24 hours
+
+Returns Process
+---------------
+We accept returns within 30 days of delivery for most items. Items must be:
+- Unused and in original condition
+- In original packaging
+- With all tags and labels attached
+
+To initiate a return:
+1. Contact support with your order number
+2. We'll provide a prepaid return shipping label
+3. Pack the item securely
+4. Drop off at any authorized shipping location
+5. Refund processed within 5-7 days of receiving the return
+
+Exchange Policy
+---------------
+We offer exchanges for size, color, or product variants. The process is:
+1. Request an exchange through your account
+2. Select the item you want to exchange
+3. Choose your preferred replacement
+4. Ship back the original item using our prepaid label
+5. New item ships once we receive the return
+
+Customer Support Hours
+----------------------
+Monday - Friday: 8:00 AM - 8:00 PM EST
+Saturday: 10:00 AM - 6:00 PM EST
+Sunday: 10:00 AM - 4:00 PM EST
+
+Average response time:
+- Live Chat: Under 2 minutes
+- Email: Within 24 hours
+- Phone: Under 5 minutes
+
+Priority support is available for premium members 24/7.
+
+Warranty Information
+--------------------
+All electronic products come with a 1-year manufacturer's warranty covering:
+- Manufacturing defects
+- Component failures under normal use
+- Software issues
+
+Warranty does NOT cover:
+- Accidental damage
+- Water damage
+- Unauthorized repairs or modifications
+- Normal wear and tear
+
+To file a warranty claim:
+1. Contact support with proof of purchase
+2. Describe the issue in detail
+3. We may request photos or videos of the problem
+4. Approved claims receive free repair or replacement
+
+Product Availability
+--------------------
+Out of Stock Items:
+- Sign up for restock notifications on the product page
+- We typically restock popular items within 2-3 weeks
+- You can pre-order items that are temporarily unavailable
+
+Discontinued Products:
+- We maintain spare parts for discontinued products for 3 years
+- Similar alternative products will be recommended
+- Extended warranties remain valid even for discontinued items
+
+Privacy & Security
+------------------
+We take your privacy seriously. We:
+- Never sell your personal information to third parties
+- Use industry-standard encryption for all transactions
+- Store payment information securely with PCI-DSS compliance
+- Allow you to delete your account and data at any time
+
+You can review our full Privacy Policy on our website.
+
+Loyalty Program
+---------------
+Join our VIP Rewards Program to earn points on every purchase:
+- Earn 1 point per dollar spent
+- 100 points = $5 reward
+- Birthday bonus: 200 points
+- Early access to sales and new products
+- Free express shipping on all orders
+
+Sign up is free and points never expire!
