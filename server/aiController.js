@@ -14,28 +14,67 @@ dotenv.config();
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// System prompt with strict TOON format requirements
-const SYSTEM_PROMPT = `You are a fast voice assistant. Output ONLY in TOON format: response[1]{text,emotion}: <text>,<emotion>. Emotions: happy, sad, angry, neutral. Keep text under 20 words.
+// Simple in-memory cache for common queries (max 50 entries, 5 min TTL)
+const responseCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const MAX_CACHE_SIZE = 50;
 
-CRITICAL RULES:
-1. ALWAYS use the exact format: response[1]{text,emotion}: <text>,<emotion>
-2. Text must be under 20 words
-3. Emotion must be one of: happy, sad, angry, neutral
-4. No extra text before or after the TOON format
-5. Be concise and direct in responses
+/**
+ * Generate cache key from user text
+ */
+function getCacheKey(text) {
+  return text.toLowerCase().trim().replace(/[^\w\s]/g, '');
+}
+
+/**
+ * Get cached response if available and not expired
+ */
+function getCachedResponse(userText) {
+  const key = getCacheKey(userText);
+  const cached = responseCache.get(key);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log('[AI Controller] 🚀 Using cached response');
+    return { ...cached.response };
+  }
+  
+  return null;
+}
+
+/**
+ * Cache a response
+ */
+function cacheResponse(userText, response) {
+  const key = getCacheKey(userText);
+  
+  // Implement simple LRU by clearing oldest entries
+  if (responseCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = responseCache.keys().next().value;
+    responseCache.delete(firstKey);
+  }
+  
+  responseCache.set(key, {
+    response: { ...response },
+    timestamp: Date.now()
+  });
+}
+
+// System prompt with strict TOON format requirements
+const SYSTEM_PROMPT = `Fast voice assistant. Output ONLY: response[1]{text,emotion}: <text>,<emotion>
+Emotions: happy, sad, angry, neutral. Keep under 20 words.
 
 Examples:
 User: "What's your refund policy?"
-response[1]{text,emotion}: We offer a 30-day money-back guarantee,neutral
+response[1]{text,emotion}: We offer 30-day money-back guarantee,neutral
 
-User: "I'm frustrated with this service"
-response[1]{text,emotion}: I understand your frustration. Let me help you right away,sad
+User: "I'm frustrated"
+response[1]{text,emotion}: I understand. Let me help you now,sad
 
-User: "Thank you so much!"
-response[1]{text,emotion}: You're very welcome! Happy to help,happy`;
+User: "Thank you!"
+response[1]{text,emotion}: You're welcome! Happy to help,happy`;
 
 /**
- * Generate AI response using Gemini 2.0 Flash-Lite
+ * Generate AI response using Gemini 1.5 Flash
  * @param {string} userText - User's input text/transcript
  * @param {Array} history - Optional conversation history (future use)
  * @returns {Promise<Object>} - Parsed response with text and emotion
@@ -53,45 +92,50 @@ export async function generateResponse(userText, history = []) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    // Query RAG for relevant context
-    let ragContext = '';
-    try {
-      console.log('[AI Controller] 🔍 Querying RAG for context...');
-      ragContext = await queryContext(userText);
-      if (ragContext) {
-        console.log('[AI Controller] ✓ RAG context retrieved');
-      } else {
-        console.log('[AI Controller] No relevant RAG context found');
-      }
-    } catch (ragError) {
-      console.warn('[AI Controller] ⚠️ RAG query failed (continuing without context):', ragError.message);
+    // Check cache first
+    const cached = getCachedResponse(userText);
+    if (cached) {
+      return cached;
     }
 
-    // Initialize model with system instruction
-    // Using gemini-2.0-flash for fast responses
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: SYSTEM_PROMPT
+    // Query RAG for relevant context in parallel with model initialization
+    const ragPromise = queryContext(userText).catch(err => {
+      console.warn('[AI Controller] ⚠️ RAG query failed (continuing without context):', err.message);
+      return '';
     });
+
+    // Initialize model with system instruction
+    // Using gemini-1.5-flash for faster responses (optimized for speed)
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: SYSTEM_PROMPT,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 100, // Limit output for faster generation
+      }
+    });
+
+    // Wait for RAG context
+    const ragContext = await ragPromise;
+    
+    if (ragContext) {
+      console.log('[AI Controller] ✓ RAG context retrieved');
+    } else {
+      console.log('[AI Controller] No relevant RAG context found');
+    }
 
     // Build prompt with RAG context and history
     let prompt = '';
     
-    // Add RAG context if available
+    // Add RAG context if available (simplified for speed)
     if (ragContext && ragContext.trim().length > 0) {
-      prompt += `Relevant Knowledge Base Context:\n${ragContext}\n\n`;
-      prompt += 'Use the above context to inform your response if relevant.\n\n';
+      prompt += `Context: ${ragContext}\n\n`;
     }
     
-    // Add conversation history
+    // Add minimal conversation history (only last exchange for speed)
     if (history && history.length > 0) {
-      const recentHistory = history.slice(-3); // Last 3 exchanges
-      prompt += 'Recent conversation:\n';
-      recentHistory.forEach(exchange => {
-        prompt += `User: ${exchange.user}\n`;
-        prompt += `Assistant: ${exchange.assistant}\n`;
-      });
-      prompt += '\n';
+      const lastExchange = history[history.length - 1];
+      prompt += `Last: User: ${lastExchange.user}\nYou: ${lastExchange.assistant}\n\n`;
     }
     
     prompt += `User: ${userText}`;
@@ -112,6 +156,9 @@ export async function generateResponse(userText, history = []) {
     parsedResponse.hadRagContext = !!ragContext;
 
     console.log('[AI Controller] Parsed response:', parsedResponse);
+
+    // Cache the response for future use
+    cacheResponse(userText, parsedResponse);
 
     return parsedResponse;
 

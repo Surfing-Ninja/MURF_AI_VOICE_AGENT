@@ -52,10 +52,10 @@ async function initializePinecone() {
 /**
  * Query Pinecone for relevant context based on user query
  * @param {string} queryText - User's question/query
- * @param {number} topK - Number of results to return (default: 3)
+ * @param {number} topK - Number of results to return (default: 2, optimized for speed)
  * @returns {Promise<string>} - Concatenated relevant context from knowledge base
  */
-export async function queryContext(queryText, topK = 3) {
+export async function queryContext(queryText, topK = 2) {
   try {
     console.log(`[RAG] 🔍 Querying knowledge base: "${queryText.substring(0, 50)}..."`);
 
@@ -65,7 +65,7 @@ export async function queryContext(queryText, topK = 3) {
     // Generate embedding for the query using Gemini
     const queryEmbedding = await generateEmbedding(queryText);
 
-    // Query Pinecone for similar vectors
+    // Query Pinecone for similar vectors (reduced topK for speed)
     const queryResponse = await pineconeIndex.query({
       vector: queryEmbedding,
       topK: topK,
@@ -83,8 +83,9 @@ export async function queryContext(queryText, topK = 3) {
     console.log(`[RAG] ✓ Found ${matches.length} relevant context chunks`);
 
     // Concatenate metadata text from all matches
+    // Lowered threshold from 0.7 to 0.65 for faster, more permissive matching
     const contextPieces = matches
-      .filter(match => match.score > 0.7) // Only include high-confidence matches
+      .filter(match => match.score > 0.65)
       .map((match, idx) => {
         const text = match.metadata?.text || '';
         const score = match.score.toFixed(3);
@@ -94,12 +95,12 @@ export async function queryContext(queryText, topK = 3) {
       .filter(text => text.length > 0);
 
     if (contextPieces.length === 0) {
-      console.log('[RAG] No high-confidence matches found (threshold: 0.7)');
+      console.log('[RAG] No high-confidence matches found (threshold: 0.65)');
       return '';
     }
 
-    // Join context pieces with clear separators
-    const fullContext = contextPieces.join('\n\n---\n\n');
+    // Join context pieces (simplified separator for less token overhead)
+    const fullContext = contextPieces.join('\n\n');
     
     console.log(`[RAG] ✓ Retrieved ${fullContext.length} characters of context`);
     
