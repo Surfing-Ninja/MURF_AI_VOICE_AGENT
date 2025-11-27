@@ -1,0 +1,32 @@
+{
+  "name": "voice-agent-server",
+  "version": "1.0.0",
+  "description": "High-performance multimodal voice agent with RAG and agentic tools",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "ingest": "node scripts/ingest.js"
+  },
+  "keywords": [
+    "voice-agent",
+    "websocket",
+    "realtime",
+    "audio",
+    "multimodal",
+    "rag",
+    "agentic"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "dotenv": "^16.3.1",
+    "@google/generative-ai": "^0.21.0",
+    "@deepgram/sdk": "^3.7.0",
+    "@pinecone-database/pinecone": "^3.0.0",
+    "axios": "^1.6.8"
+  }
+}

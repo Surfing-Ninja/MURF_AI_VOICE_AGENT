@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Agent - Multimodal Customer Support</title>
+  
+  <!-- HTML2Canvas for screen capture -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2rem;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      text-align: center;
+      opacity: 0.8;
+      margin-bottom: 30px;
+      font-size: 0.9rem;
+    }
+
+    /* Visualizer Canvas */
+    #visualizer {
+      width: 100%;
+      height: 200px;
+      border-radius: 15px;
+      background: rgba(0, 0, 0, 0.2);
+      margin-bottom: 30px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      flex: 1;
+      min-width: 150px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    #startBtn {
+      background: #10b981;
+      color: white;
+    }
+
+    #startBtn.recording {
+      background: #ef4444;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    #screenshotBtn {
+      background: #3b82f6;
+      color: white;
+    }
+
+    #screenshotBtn:disabled {
+      background: #6b7280;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    /* Status Display */
+    .status {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .status-text {
+      text-align: center;
+      opacity: 0.9;
+    }
+
+    /* Transcript Display */
+    .transcript {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      border-radius: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+    }
+
+    .transcript-item {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .transcript-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .user-msg {
+      color: #60a5fa;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .ai-msg {
+      color: #34d399;
+      opacity: 0.95;
+    }
+
+    /* Connection Status */
+    .connection-status {
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .connection-status.connected {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+
+    .connection-status.disconnected {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-left: 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Scrollbar */
+    .transcript::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .transcript::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+    }
+
+    .transcript::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+    }
+
+    .transcript::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Info Badge */
+    .info-badge {
+      display: inline-block;
+      background: rgba(59, 130, 246, 0.3);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>🎙️ Voice Agent</h1>
+      <p class="subtitle">Multimodal Customer Support AI</p>
+
+      <!-- Connection Status -->
+      <div id="connectionStatus" class="connection-status disconnected">
+        ⚠️ Connecting...
+      </div>
+
+      <!-- Audio Visualizer -->
+      <canvas id="visualizer"></canvas>
+
+      <!-- Status Display -->
+      <div class="status">
+        <p id="statusText" class="status-text">Click "Start Talking" to begin</p>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button id="startBtn">🎤 Start Talking</button>
+        <button id="screenshotBtn" disabled>📸 Look Over My Shoulder</button>
+      </div>
+
+      <!-- Transcript -->
+      <div class="transcript" id="transcript">
+        <p style="opacity: 0.5; text-align: center;">Your conversation will appear here...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // CONFIGURATION
+    // ═══════════════════════════════════════════════════════════
+    
+    const WS_URL = `ws://${window.location.hostname}:${window.location.port || 3000}`;
+    
+    // ═══════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════
+    
+    let ws = null;
+    let mediaStream = null;
+    let audioContext = null;
+    let sourceNode = null;
+    let analyserNode = null;
+    let isRecording = false;
+    let audioQueue = [];
+    let isPlaying = false;
+
+    // ═══════════════════════════════════════════════════════════
+    // DOM ELEMENTS
+    // ═══════════════════════════════════════════════════════════
+    
+    const startBtn = document.getElementById('startBtn');
+    const screenshotBtn = document.getElementById('screenshotBtn');
+    const statusText = document.getElementById('statusText');
+    const transcriptDiv = document.getElementById('transcript');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const canvas = document.getElementById('visualizer');
+    const canvasCtx = canvas.getContext('2d');
+
+    // ═══════════════════════════════════════════════════════════
+    // WEBSOCKET CONNECTION
+    // ═══════════════════════════════════════════════════════════
+    
+    function connectWebSocket() {
+      console.log('Connecting to WebSocket:', WS_URL);
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        console.log('✅ WebSocket connected');
+        connectionStatus.className = 'connection-status connected';
+        connectionStatus.textContent = '✅ Connected';
+        screenshotBtn.disabled = false;
+      };
+
+      ws.onmessage = async (event) => {
+        if (event.data instanceof Blob) {
+          // Binary audio data from Murf
+          console.log('🔊 Received audio blob:', event.data.size, 'bytes');
+          await playAudio(event.data);
+        } else {
+          // JSON message
+          const message = JSON.parse(event.data);
+          handleServerMessage(message);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        connectionStatus.className = 'connection-status disconnected';
+        connectionStatus.textContent = '❌ Connection Error';
+      };
+
+      ws.onclose = () => {
+        console.log('🔌 WebSocket closed');
+        connectionStatus.className = 'connection-status disconnected';
+        connectionStatus.textContent = '⚠️ Disconnected';
+        screenshotBtn.disabled = true;
+        
+        // Attempt reconnection after 3 seconds
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MESSAGE HANDLERS
+    // ═══════════════════════════════════════════════════════════
+    
+    function handleServerMessage(message) {
+      console.log('📨 Server message:', message);
+
+      switch (message.type) {
+        case 'connection':
+          console.log('Connected with ID:', message.clientId);
+          updateStatus('Ready to talk!');
+          break;
+
+        case 'stt_ready':
+          updateStatus('🎤 Listening...');
+          break;
+
+        case 'transcript':
+          if (message.isFinal) {
+            addToTranscript('user', message.text);
+            updateStatus('Processing... <span class="spinner"></span>');
+          }
+          break;
+
+        case 'status':
+          updateStatus(message.message + ' <span class="spinner"></span>');
+          break;
+
+        case 'ai_response':
+          addToTranscript('ai', message.text, message.emotion);
+          break;
+
+        case 'tts_start':
+          updateStatus('🔊 Speaking...');
+          break;
+
+        case 'tts_audio':
+          // Decode base64 audio and play
+          console.log('🔊 Received TTS audio');
+          const audioData = atob(message.audio);
+          const audioBytes = new Uint8Array(audioData.length);
+          for (let i = 0; i < audioData.length; i++) {
+            audioBytes[i] = audioData.charCodeAt(i);
+          }
+          const audioBlob = new Blob([audioBytes], { type: 'audio/mp3' });
+          playAudio(audioBlob);
+          break;
+
+        case 'tts_end':
+          updateStatus(isRecording ? '🎤 Listening...' : 'Ready to talk!');
+          break;
+
+        case 'audio_start':
+          updateStatus('🔊 Speaking...');
+          break;
+
+        case 'audio_complete':
+          updateStatus(isRecording ? '🎤 Listening...' : 'Ready to talk!');
+          break;
+
+        case 'screen_capture_received':
+          updateStatus('👁️ Screen analyzed! Ask me about what you see.');
+          break;
+
+        case 'error':
+          console.error('Server error:', message.message);
+          updateStatus('⚠️ Error: ' + message.message);
+          break;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // AUDIO INPUT (Microphone -> WebM -> WebSocket)
+    // Using MediaRecorder for Deepgram auto-detect
+    // ═══════════════════════════════════════════════════════════
+    
+    let mediaRecorder = null;
+    
+    async function startRecording() {
+      try {
+        console.log('🎤 Starting recording...');
+
+        // Get microphone access
+        mediaStream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          } 
+        });
+
+        // Create audio context for visualizer only
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        sourceNode = audioContext.createMediaStreamSource(mediaStream);
+        
+        // Create analyser for visualizer
+        analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 2048;
+        sourceNode.connect(analyserNode);
+
+        // Use MediaRecorder to send WebM audio (Deepgram auto-detects this)
+        mediaRecorder = new MediaRecorder(mediaStream, {
+          mimeType: 'audio/webm;codecs=opus'
+        });
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(event.data);
+          }
+        };
+
+        // Send audio chunks every 250ms for low latency
+        mediaRecorder.start(250);
+
+        isRecording = true;
+        startBtn.textContent = '⏹️ Stop Talking';
+        startBtn.classList.add('recording');
+
+        // Notify server
+        ws.send(JSON.stringify({ type: 'start_recording' }));
+
+        // Start visualizer
+        visualize();
+
+      } catch (error) {
+        console.error('❌ Error starting recording:', error);
+        alert('Failed to access microphone: ' + error.message);
+      }
+    }
+
+    function stopRecording() {
+      console.log('⏹️ Stopping recording...');
+
+      isRecording = false;
+      startBtn.textContent = '🎤 Start Talking';
+      startBtn.classList.remove('recording');
+
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        mediaRecorder = null;
+      }
+
+      if (sourceNode) {
+        sourceNode.disconnect();
+        sourceNode = null;
+      }
+
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+      }
+
+      // Notify server
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'stop_recording' }));
+      }
+
+      // Clear visualizer
+      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // AUDIO OUTPUT (Queue & Play MP3 from Murf)
+    // ═══════════════════════════════════════════════════════════
+    
+    async function playAudio(audioBlob) {
+      audioQueue.push(audioBlob);
+      
+      if (!isPlaying) {
+        processAudioQueue();
+      }
+    }
+
+    async function processAudioQueue() {
+      if (audioQueue.length === 0) {
+        isPlaying = false;
+        return;
+      }
+
+      isPlaying = true;
+      const audioBlob = audioQueue.shift();
+
+      try {
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          processAudioQueue(); // Play next in queue
+        };
+
+        audio.onerror = (error) => {
+          console.error('Error playing audio:', error);
+          URL.revokeObjectURL(audioUrl);
+          processAudioQueue();
+        };
+
+        await audio.play();
+      } catch (error) {
+        console.error('Failed to play audio:', error);
+        processAudioQueue();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SCREEN CAPTURE ("Look Over My Shoulder")
+    // ═══════════════════════════════════════════════════════════
+    
+    async function captureScreen() {
+      try {
+        console.log('📸 Capturing screen...');
+        updateStatus('📸 Taking screenshot... <span class="spinner"></span>');
+
+        // Use html2canvas to capture the entire page
+        const canvas = await html2canvas(document.body, {
+          allowTaint: true,
+          useCORS: true,
+          scale: 0.5 // Reduce size for faster upload
+        });
+
+        // Convert to base64
+        const base64Image = canvas.toDataURL('image/png').split(',')[1];
+
+        console.log('📤 Sending screenshot to server...');
+
+        // Send to server
+        ws.send(JSON.stringify({
+          type: 'screen_capture',
+          image: base64Image
+        }));
+
+        updateStatus('✓ Screenshot sent! I can see your screen now.');
+
+      } catch (error) {
+        console.error('❌ Failed to capture screen:', error);
+        updateStatus('⚠️ Screenshot failed: ' + error.message);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // VISUALIZER (Audio Waveform/Orb)
+    // ═══════════════════════════════════════════════════════════
+    
+    function visualize() {
+      if (!isRecording || !analyserNode) return;
+
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      function draw() {
+        if (!isRecording) return;
+
+        requestAnimationFrame(draw);
+
+        analyserNode.getByteTimeDomainData(dataArray);
+
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Calculate volume for orb size
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += Math.abs(dataArray[i] - 128);
+        }
+        const volume = sum / bufferLength / 128;
+
+        // Draw pulsing orb
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const baseRadius = 40;
+        const radius = baseRadius + volume * 60;
+
+        const gradient = canvasCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.4)');
+        gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
+
+        canvasCtx.fillStyle = gradient;
+        canvasCtx.beginPath();
+        canvasCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        canvasCtx.fill();
+
+        // Draw waveform
+        canvasCtx.lineWidth = 2;
+        canvasCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        canvasCtx.beginPath();
+
+        const sliceWidth = canvas.width / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = v * canvas.height / 2;
+
+          if (i === 0) {
+            canvasCtx.moveTo(x, y);
+          } else {
+            canvasCtx.lineTo(x, y);
+          }
+
+          x += sliceWidth;
+        }
+
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.stroke();
+      }
+
+      draw();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // UI HELPERS
+    // ═══════════════════════════════════════════════════════════
+    
+    function updateStatus(text) {
+      statusText.innerHTML = text;
+    }
+
+    function addToTranscript(role, text, emotion = null) {
+      // Clear placeholder if present
+      if (transcriptDiv.children.length === 1 && 
+          transcriptDiv.children[0].textContent.includes('conversation will appear')) {
+        transcriptDiv.innerHTML = '';
+      }
+
+      const item = document.createElement('div');
+      item.className = 'transcript-item';
+
+      if (role === 'user') {
+        item.innerHTML = `<div class="user-msg">You: ${text}</div>`;
+      } else {
+        const emotionBadge = emotion ? `<span class="info-badge">${emotion}</span>` : '';
+        item.innerHTML = `<div class="ai-msg">Agent: ${text} ${emotionBadge}</div>`;
+      }
+
+      transcriptDiv.appendChild(item);
+      transcriptDiv.scrollTop = transcriptDiv.scrollHeight;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // EVENT LISTENERS
+    // ═══════════════════════════════════════════════════════════
+    
+    startBtn.addEventListener('click', () => {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    screenshotBtn.addEventListener('click', captureScreen);
+
+    // ═══════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════
+    
+    window.addEventListener('load', () => {
+      connectWebSocket();
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (isRecording) {
+        stopRecording();
+      }
+      if (ws) {
+        ws.close();
+      }
+    });
+  </script>
+</body>
+</html>

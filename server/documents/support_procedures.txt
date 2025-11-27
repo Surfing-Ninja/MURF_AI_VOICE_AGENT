@@ -1,0 +1,455 @@
+DesiMart Customer Support Procedures & How-To Guides
+
+=== HOW TO PLACE AN ORDER ===
+
+Step-by-Step Guide:
+
+1. Browse or Search for Products
+   - Use the search bar at the top
+   - Or browse by category from the menu
+   - Apply filters (price range, brand, features, ratings)
+
+2. Select Your Product
+   - Click on the product for details
+   - Read specifications, reviews, and ratings
+   - Check delivery time for your pincode
+   - View available offers and bank discounts
+
+3. Add to Cart
+   - Select quantity, color, variant
+   - Click "Add to Cart"
+   - Continue shopping or proceed to checkout
+
+4. Review Cart
+   - Check all items and quantities
+   - Apply coupon code if available
+   - Check estimated delivery date
+
+5. Proceed to Checkout
+   - Sign in or create account (or checkout as guest)
+   - Enter delivery address
+   - Select delivery speed (Standard/Express/Same-day)
+
+6. Choose Payment Method
+   - Credit/Debit Card
+   - Net Banking
+   - UPI
+   - Cash on Delivery
+   - EMI option
+
+7. Place Order
+   - Review order summary
+   - Click "Place Order"
+   - You'll receive order confirmation via email and SMS
+
+=== HOW TO TRACK YOUR ORDER ===
+
+Method 1: Website/App
+1. Log in to your DesiMart account
+2. Go to "My Orders"
+3. Find your order
+4. Click "Track Order"
+5. View real-time tracking with map
+
+Method 2: Email Link
+1. Check your order confirmation email
+2. Click on the tracking link
+3. No login required
+
+Method 3: SMS
+Reply to the order confirmation SMS with "TRACK" to get tracking link
+
+Method 4: Call Support
+Call 1800-123-4567 and provide your order number
+
+Tracking Status Meanings:
+- Order Confirmed: We've received your order
+- Order Processed: Payment confirmed, preparing for shipment
+- Order Packed: Item packed and ready to ship
+- Order Shipped: Handed over to delivery partner
+- Out for Delivery: Delivery person is on the way
+- Delivered: Successfully delivered
+
+=== HOW TO CANCEL AN ORDER ===
+
+Before Shipment:
+1. Go to "My Orders"
+2. Select the order you want to cancel
+3. Click "Cancel Order"
+4. Select cancellation reason
+5. Click "Confirm Cancellation"
+6. Refund initiated immediately
+
+After Shipment:
+You cannot cancel after shipping. Options:
+1. Refuse delivery at your doorstep (inform delivery person)
+2. Accept delivery and initiate return later
+
+Auto-Cancellation:
+Orders auto-cancelled if:
+- Payment not completed within 24 hours
+- Product goes out of stock
+- Address unserviceable
+- Suspected fraudulent activity
+
+Refund Timeline:
+- Original payment method: 7-10 business days
+- DesiMart Wallet: Instant
+- Bank transfer: 5-7 business days
+
+=== HOW TO RETURN A PRODUCT ===
+
+Eligibility Check:
+- Product must be within 30-day return window
+- Unused, in original packaging with all accessories
+- Not in non-returnable category
+- No damage or missing seal
+
+Return Process:
+
+1. Initiate Return Request
+   - Go to "My Orders"
+   - Select the item
+   - Click "Return Item"
+
+2. Select Reason
+   - Received wrong product
+   - Product damaged/defective
+   - Product not as described
+   - Changed mind
+   - Found better price elsewhere
+   - Other (specify)
+
+3. Choose Refund Method
+   - Original payment source (recommended)
+   - DesiMart Wallet (instant credit)
+   - Bank transfer
+
+4. Schedule Pickup
+   - Select convenient date and time slot
+   - We'll arrange FREE pickup from your address
+   - Ensure product is packed properly
+
+5. Pickup Confirmation
+   - Keep product ready with accessories, packaging
+   - Delivery person will collect
+   - You'll receive pickup confirmation
+
+6. Quality Check
+   - We inspect the product at our warehouse
+   - Usually takes 2-3 business days
+
+7. Refund Processing
+   - If approved, refund initiated within 24 hours
+   - DesiMart Wallet: Instant
+   - Original method: 7-10 business days
+   - Bank transfer: 5-7 business days
+
+If Quality Check Fails:
+- You'll be notified with reason
+- Product will be returned to you
+- You may need to pay return shipping (₹99)
+
+=== HOW TO CHANGE DELIVERY ADDRESS ===
+
+Before Shipment:
+1. Go to "My Orders"
+2. Select the order
+3. Click "Change Address"
+4. Enter new address or select from saved addresses
+5. Click "Update"
+6. You'll receive confirmation
+
+After Shipment:
+Contact support immediately:
+- Call: 1800-123-4567
+- WhatsApp: +91-9876543210
+- Live Chat on website
+
+We'll try to redirect the shipment, but success depends on delivery partner and location. If redirection fails, you may need to:
+1. Refuse delivery
+2. Get refund
+3. Place new order to correct address
+
+Address Requirements:
+- Complete street address
+- Landmark
+- City, State, Pincode
+- Contact person name
+- Working phone number
+
+=== HOW TO REQUEST A REFUND ===
+
+For Returns:
+Follow return process (see above). Refund auto-initiated after quality check.
+
+For Cancelled Orders:
+Refund automatically processed when order is cancelled.
+
+For Damaged/Defective Products:
+1. Contact support within 48 hours of delivery
+2. Share photos/videos of damage
+3. We'll arrange pickup
+4. Immediate replacement or refund (your choice)
+
+For Wrong Product:
+1. Contact support immediately
+2. Send photos
+3. We'll collect wrong item and send correct one
+4. Or full refund if you prefer
+
+Refund Status Check:
+1. Go to "My Orders"
+2. Select the order
+3. View "Refund Status"
+4. Check refund tracking number
+
+If Refund Delayed:
+After 10 business days, if refund not received:
+1. Email: refunds@desimart.com with:
+   - Order number
+   - Bank details
+   - Screenshot of refund status
+2. Call: 1800-123-4567
+3. We'll escalate and resolve within 24 hours
+
+=== HOW TO REPORT AN ISSUE ===
+
+During Order/Delivery:
+1. Go to "My Orders"
+2. Select the problematic order
+3. Click "Report Issue"
+4. Select issue type:
+   - Wrong product received
+   - Product damaged
+   - Product defective
+   - Missing accessories
+   - Delivery delayed
+   - Other issues
+5. Add description and photos
+6. Submit
+
+Our team will respond within 24 hours.
+
+For Technical Issues:
+- Website/App not working: support@desimart.com
+- Payment issues: payments@desimart.com
+- Account issues: accounts@desimart.com
+
+For Fraud/Security:
+- Suspicious activity: security@desimart.com
+- Fraudulent transaction: fraud@desimart.com
+- Phishing emails: phishing@desimart.com
+- Call fraud helpline: 1800-123-4568
+
+=== HOW TO USE COUPON CODES ===
+
+Finding Coupons:
+- Check "Offers" page on website
+- Email newsletters
+- SMS updates
+- App notifications
+- Festival sale banners
+
+Applying Coupons:
+1. Add products to cart
+2. Go to cart/checkout
+3. Look for "Apply Coupon" box
+4. Enter code (case-sensitive)
+5. Click "Apply"
+6. Discount will reflect in order total
+
+Common Issues:
+- "Coupon expired": Check validity date
+- "Minimum order not met": Add more items
+- "Not applicable on this product": Check product restrictions
+- "Already used": Most coupons are one-time use
+
+Stacking Coupons:
+- Only 1 coupon per order
+- Can combine with bank offers and cashback
+- Sale prices + coupon = Allowed
+- Multiple coupons on same order = Not allowed
+
+=== HOW TO UPDATE PAYMENT METHOD ===
+
+Before Order Placement:
+Simply select preferred method at checkout
+
+After Order (Payment Pending):
+1. Go to pending order
+2. Click "Change Payment Method"
+3. Select new method
+4. Complete payment
+
+Failed Payment:
+- You can retry with same or different method
+- 3 attempts allowed within 24 hours
+- After that, order auto-cancelled
+
+Add/Remove Saved Cards:
+1. Go to "My Account"
+2. Select "Saved Cards"
+3. Add new card or delete old ones
+4. CVV needed for verification
+
+=== HOW TO CLAIM WARRANTY ===
+
+For Manufacturing Defects:
+1. Contact support: 1800-123-4567 or support@desimart.com
+2. Provide:
+   - Order number
+   - Product details
+   - Issue description
+   - Photos/videos of problem
+3. Our team will diagnose remotely
+4. If repair/replacement needed:
+   - We arrange free pickup
+   - Send to service center
+   - Repair/replace within 7-14 days
+   - Free delivery back to you
+
+For Extended Warranty:
+If you purchased extended warranty:
+1. Mention this while claiming
+2. Better benefits (accidental damage, priority service)
+3. Loaner device provided in some cases
+
+What to Keep Ready:
+- Original invoice/order receipt
+- Warranty card (if any)
+- Product with all accessories
+- Original packaging (preferred)
+
+Not Covered:
+- Physical/liquid damage (unless extended warranty)
+- Tampered serial numbers
+- Unauthorized repairs
+- Normal wear and tear
+
+=== HOW TO CHECK ORDER INVOICE ===
+
+Steps:
+1. Log in to your account
+2. Go to "My Orders"
+3. Find your order
+4. Click "Download Invoice"
+5. PDF will download
+
+Uses:
+- Warranty claims
+- Company reimbursements
+- Tax purposes
+- Accounting records
+
+Lost Invoice:
+Email support@desimart.com with order number. We'll resend.
+
+=== HOW TO CONTACT CUSTOMER SUPPORT ===
+
+Phone:
+- Toll-free: 1800-123-4567
+- Monday-Saturday: 9 AM - 9 PM
+- Sunday: 10 AM - 6 PM
+- 24/7 for urgent order issues
+
+Email:
+- General: support@desimart.com
+- Refunds: refunds@desimart.com
+- Technical: technical@desimart.com
+- Corporate: corporate@desimart.com
+- Response time: Within 24 hours
+
+Live Chat:
+- Available on website
+- Monday-Saturday: 9 AM - 9 PM
+- Instant response
+
+WhatsApp:
+- +91-9876543210
+- Share screenshots, videos easily
+- Response time: 2-4 hours
+
+Social Media:
+- Twitter: @DesiMartHelp
+- Facebook: facebook.com/DesiMartOfficial
+- Instagram: @DesiMartIndia
+
+Before Contacting Support, Keep Ready:
+- Order number
+- Registered email/phone
+- Product details
+- Photos/screenshots of issue
+- Payment transaction details (if payment issue)
+
+=== HOW TO UPDATE ACCOUNT DETAILS ===
+
+Personal Information:
+1. Go to "My Account"
+2. Click "Profile Settings"
+3. Edit name, email, phone
+4. Click "Save Changes"
+5. Verify OTP (for email/phone changes)
+
+Password Change:
+1. Go to "Account Settings"
+2. Click "Change Password"
+3. Enter current password
+4. Enter new password (min 8 characters)
+5. Confirm new password
+6. Save
+
+Manage Addresses:
+1. Go to "My Addresses"
+2. Add new address
+3. Edit existing address
+4. Delete old address
+5. Set default address
+
+Email Preferences:
+1. Go to "Communication Preferences"
+2. Choose what emails you want:
+   - Order updates (cannot unsubscribe)
+   - Promotional offers
+   - New arrivals
+   - Personalized recommendations
+3. Save preferences
+
+Delete Account:
+1. "Account Settings" > "Delete Account"
+2. Confirm deletion
+3. Complete/cancel pending orders first
+4. Wallet balance will be refunded
+5. Cannot be undone
+
+=== HOW TO GIVE FEEDBACK OR FILE A COMPLAINT ===
+
+Product Review:
+1. Go to "My Orders"
+2. Select delivered product
+3. Click "Rate & Review"
+4. Give star rating (1-5)
+5. Write detailed review
+6. Upload photos/videos (optional)
+7. Submit
+
+Service Feedback:
+1. After order delivery, you'll receive feedback email
+2. Rate delivery and packaging
+3. Rate customer support (if contacted)
+4. Suggestions welcome
+
+File Complaint:
+If not satisfied:
+1. Email: complaints@desimart.com with:
+   - Order details
+   - Nature of complaint
+   - Resolution expected
+2. Call complaint helpline: 1800-123-4570
+3. Escalation: Senior management will contact within 48 hours
+
+Consumer Forum:
+If still not resolved, you can approach:
+- National Consumer Helpline: 1800-11-4000
+- Consumer court in your jurisdiction
+- We prefer amicable resolution first
