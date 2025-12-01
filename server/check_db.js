@@ -1,4 +1,3 @@
-
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,22 +9,42 @@ const dbPath = path.join(__dirname, 'lumina.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database:', err.message);
-        process.exit(1);
+        return;
     }
-});
+    console.log('Connected to database.');
+    
+    db.serialize(() => {
+        // List all tables
+        db.all("SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence'", (err, tables) => {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            
+            const tableNames = tables.map(t => t.name);
+            
+            // Function to check next table
+            const checkTable = (index) => {
+                if (index >= tableNames.length) return;
+                
+                const tableName = tableNames[index];
+                
+                db.all(`SELECT * FROM ${tableName}`, (err, rows) => {
+                    if (err) {
+                        console.error(`Error getting data for ${tableName}:`, err);
+                    } else {
+                        console.log(`\n=== ${tableName.toUpperCase()} TABLE ===`);
+                        if (rows.length > 0) {
+                            console.table(rows);
+                        } else {
+                            console.log('(Empty)');
+                        }
+                    }
+                    checkTable(index + 1);
+                });
+            };
 
-console.log("=== PRODUCTS TABLE ===");
-db.all("SELECT id, name, price, stock FROM products", [], (err, rows) => {
-    if (err) console.error(err);
-    else console.table(rows);
-
-    console.log("\n=== ORDERS TABLE ===");
-    db.all("SELECT * FROM orders", [], (err, rows) => {
-        if (err) console.error(err);
-        else {
-            if (rows.length === 0) console.log("No orders found.");
-            else console.table(rows);
-        }
-        db.close();
+            checkTable(0);
+        });
     });
 });
