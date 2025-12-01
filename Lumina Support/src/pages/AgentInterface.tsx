@@ -44,12 +44,16 @@ Coupons: DIWALI2024 (Extra ₹500 >₹10k), FIRSTDIWALI (Flat ₹2000 off first 
 
 Use this info to answer questions accurately. If asked about something not here, politely say you don't have that info.
 
-CRITICAL INSTRUCTION: You have access to tools 'search_order', 'place_order', 'cancel_order', and 'check_stock'.
-- If a user wants to place an order, you MUST call the 'place_order' tool. Do NOT just say you placed it.
-- If a user asks about an order status, you MUST call the 'search_order' tool.
-- If a user wants to cancel, you MUST call 'cancel_order'.
-- If a user asks for price or stock, call 'check_stock'.
-- NEVER hallucinate or pretend to perform these actions without calling the tool.`;
+CRITICAL INSTRUCTION: You have access to tools 'search_order', 'place_order', 'cancel_order', 'check_stock', 'check_refund_status', 'create_refund_request', 'apply_discount', 'generate_invoice', 'update_shipping_address', 'schedule_delivery', 'create_customer_profile', 'get_customer_details', and 'submit_feedback'.
+
+RULES:
+1. **General Conversation**: You are a helpful assistant first. Engage in small talk, answer product questions, and be friendly. Do NOT ask for an Order ID unless the user specifically asks about an existing order.
+2. **Place Order**: You MUST ask for the customer's name before placing an order. Do NOT use "Guest" unless explicitly told to.
+3. **Refunds**: If a user wants to refund/return, you MUST ask for the reason first. Then call 'create_refund_request'.
+4. **Smart Address**: If a user wants to use an address from a previous order, call 'search_order' to get that address, then call 'update_customer_profile' or 'update_shipping_address'.
+5. **Last Order**: To find the last order, call 'get_customer_details' and check 'last_order_id'.
+6. **Invoices**: If asked for an invoice, call 'generate_invoice'.
+7. **Tool Usage**: NEVER hallucinate actions. Always call the appropriate tool.`;
 
 const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-09-2025';
 
@@ -60,6 +64,8 @@ interface AudioQueueItem {
 
 // --- AudioWorklet Processor Code ---
 // This runs on a separate thread for low-latency processing, similar to WebRTC internals.
+
+
 const WORKLET_CODE = `
 class PCMProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -105,16 +111,16 @@ const tools = [
       },
       {
         name: "place_order",
-        description: "Place a new order for a product.",
+        description: "Place a new order. MANDATORY: Ask for customer_name if not known.",
         parameters: {
           type: "OBJECT" as any,
           properties: {
             item_name: { type: "STRING" as any, description: "Name of the item to order" },
             quantity: { type: "INTEGER" as any, description: "Quantity of the item" },
             address: { type: "STRING" as any, description: "Delivery address" },
-            customer_name: { type: "STRING" as any, description: "Name of the customer" }
+            customer_name: { type: "STRING" as any, description: "Name of the customer (REQUIRED)" }
           },
-          required: ["item_name", "quantity", "address"]
+          required: ["item_name", "quantity", "address", "customer_name"]
         }
       },
       {
@@ -137,6 +143,115 @@ const tools = [
             product_name: { type: "STRING" as any, description: "Name of the product" }
           },
           required: ["product_name"]
+        }
+      },
+      {
+        name: "check_refund_status",
+        description: "Check the status of a refund for a specific order.",
+        parameters: {
+          type: "OBJECT" as any,
+          properties: {
+            order_id: { type: "STRING" as any, description: "The order ID" }
+          },
+          required: ["order_id"]
+        }
+      },
+      {
+        name: "create_refund_request",
+        description: "Create a refund request for an order. MUST ask for reason first.",
+        parameters: {
+          type: "OBJECT" as any,
+          properties: {
+            order_id: { type: "STRING" as any, description: "The order ID" },
+            reason: { type: "STRING" as any, description: "Reason for the refund/return" }
+          },
+          required: ["order_id", "reason"]
+        }
+      },
+      {
+        name: "apply_discount",
+        description: "Apply a discount or coupon code to an order.",
+        parameters: {
+          type: "OBJECT" as any,
+          properties: {
+            order_id: { type: "STRING" as any, description: "The order ID" },
+            code: { type: "STRING" as any, description: "The coupon code (e.g., DIWALI2024)" }
+          },
+          required: ["order_id", "code"]
+        }
+      },
+      {
+        name: "generate_invoice",
+        description: "Generate and send the invoice PDF for an order.",
+        parameters: {
+          type: "OBJECT" as any,
+          properties: {
+            order_id: { type: "STRING" as any, description: "The order ID" }
+          },
+          required: ["order_id"]
+        }
+      },
+      {
+        name: "update_shipping_address",
+        description: "Update the shipping address for an existing order.",
+        parameters: {
+          type: "OBJECT" as any,
+          properties: {
+            order_id: { type: "STRING" as any, description: "The order ID" },
+            new_address: { type: "STRING" as any, description: "The new shipping address" }
+          },
+          required: ["order_id", "new_address"]
+        }
+      },
+      {
+        name: "schedule_delivery",
+        description: "Schedule a delivery slot for an order.",
+        parameters: {
+          type: "OBJECT" as any,
+          properties: {
+            order_id: { type: "STRING" as any, description: "The order ID" },
+            slot: { type: "STRING" as any, description: "Preferred time slot (e.g., 'Morning', 'Evening', 'Weekend')" }
+          },
+          required: ["order_id", "slot"]
+        }
+      },
+      {
+        name: "create_customer_profile",
+        description: "Create a new customer profile with loyalty points.",
+        parameters: {
+          type: "OBJECT" as any,
+          properties: {
+            name: { type: "STRING" as any, description: "Customer Name" },
+            email: { type: "STRING" as any, description: "Customer Email" },
+            phone: { type: "STRING" as any, description: "Phone Number" },
+            address: { type: "STRING" as any, description: "Home Address" }
+          },
+          required: ["name", "email"]
+        }
+      },
+      {
+        name: "get_customer_details",
+        description: "Retrieve customer details including saved address and loyalty points.",
+        parameters: {
+          type: "OBJECT" as any,
+          properties: {
+            email: { type: "STRING" as any, description: "Customer Email" },
+            name: { type: "STRING" as any, description: "Customer Name" }
+          },
+          required: []
+        }
+      },
+      {
+        name: "submit_feedback",
+        description: "Submit customer feedback and rating.",
+        parameters: {
+          type: "OBJECT" as any,
+          properties: {
+            rating: { type: "INTEGER" as any, description: "Rating from 1 to 5" },
+            comment: { type: "STRING" as any, description: "Feedback comments" },
+            email: { type: "STRING" as any, description: "Customer Email (Optional but recommended)" }
+          },
+          required: ["rating"]
         }
       }
     ]
@@ -326,6 +441,9 @@ const AgentInterface: React.FC = () => {
 
       // 1b. Initialize Playback Audio Context (System Default Rate)
       const playbackCtx = new AudioContextClass();
+      if (playbackCtx.state === 'suspended') {
+        await playbackCtx.resume();
+      }
       playbackAudioContextRef.current = playbackCtx;
 
       // 2. Load AudioWorklet (Low-latency processing)
@@ -343,6 +461,15 @@ const AgentInterface: React.FC = () => {
       // 5. Start Live Session
       const sessionPromise = ai.live.connect({
         model: MODEL_NAME,
+        generationConfig: {
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: "Puck"
+              }
+            }
+          }
+        },
         callbacks: {
           onopen: () => {
             console.log('Gemini Live Session Opened');
@@ -477,6 +604,84 @@ const AgentInterface: React.FC = () => {
                     } else {
                       result = { status: 'not_found', message: 'Product not found' };
                     }
+                  } else if (name === "check_refund_status") {
+                    const orderId = (args as any).order_id;
+                    console.log(`[Tool] Checking refund for ${orderId}...`);
+                    const response = await fetch(`/api/refunds/${orderId}`);
+                    result = await response.json();
+                  } else if (name === "create_refund_request") {
+                    const { order_id, reason } = args as any;
+                    console.log(`[Tool] Creating refund for ${order_id}...`);
+                    const response = await fetch('/api/refunds', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ order_id, reason })
+                    });
+                    result = await response.json();
+                  } else if (name === "apply_discount") {
+                    const { order_id, code } = args as any;
+                    console.log(`[Tool] Applying discount ${code} to ${order_id}...`);
+                    const response = await fetch(`/api/orders/${order_id}/discount`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ code })
+                    });
+                    result = await response.json();
+                  } else if (name === "generate_invoice") {
+                    const orderId = (args as any).order_id;
+                    console.log(`[Tool] Generating invoice for ${orderId}...`);
+                    // For PDF, we handle it specially - open in new tab
+                    const response = await fetch(`/api/orders/${orderId}/invoice`);
+                    if (response.ok) {
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      window.open(url, '_blank'); // Open PDF
+                      result = { status: 'success', message: 'Invoice generated and opened in new tab.' };
+                    } else {
+                      result = { status: 'error', message: 'Failed to generate invoice.' };
+                    }
+                  } else if (name === "update_shipping_address") {
+                    const { order_id, new_address } = args as any;
+                    console.log(`[Tool] Updating address for ${order_id}...`);
+                    const response = await fetch(`/api/orders/${order_id}/address`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ address: new_address })
+                    });
+                    result = await response.json();
+                  } else if (name === "schedule_delivery") {
+                    const { order_id, slot } = args as any;
+                    console.log(`[Tool] Scheduling delivery for ${order_id}...`);
+                    const response = await fetch(`/api/orders/${order_id}/schedule`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ slot })
+                    });
+                    result = await response.json();
+                  } else if (name === "create_customer_profile") {
+                    console.log(`[Tool] Creating profile...`, args);
+                    const response = await fetch('/api/customers', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(args)
+                    });
+                    result = await response.json();
+                  } else if (name === "get_customer_details") {
+                    const { email, name } = args as any;
+                    console.log(`[Tool] Fetching customer details...`);
+                    const params = new URLSearchParams();
+                    if (email) params.append('email', email);
+                    if (name) params.append('name', name);
+                    const response = await fetch(`/api/customers?${params.toString()}`);
+                    result = await response.json();
+                  } else if (name === "submit_feedback") {
+                    console.log(`[Tool] Submitting feedback...`, args);
+                    const response = await fetch('/api/feedback', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(args)
+                    });
+                    result = await response.json();
                   }
                 } catch (e) {
                   console.error("[Tool] Execution failed:", e);
@@ -509,6 +714,32 @@ const AgentInterface: React.FC = () => {
                   } else {
                     responseText = 'Product not found in our inventory';
                   }
+                } else if (name === "check_refund_status") {
+                  if (result.status === 'found') {
+                    responseText = `Refund Status: ${result.refund.status}. Amount: ₹${result.refund.amount}. Reason: ${result.refund.reason}`;
+                  } else {
+                    responseText = result.message;
+                  }
+                } else if (name === "create_refund_request") {
+                  responseText = result.message;
+                } else if (name === "apply_discount") {
+                  responseText = result.message;
+                } else if (name === "generate_invoice") {
+                  responseText = result.message;
+                } else if (name === "update_shipping_address") {
+                  responseText = result.message;
+                } else if (name === "schedule_delivery") {
+                  responseText = result.message;
+                } else if (name === "create_customer_profile") {
+                  responseText = result.message;
+                } else if (name === "get_customer_details") {
+                  if (result.status === 'found') {
+                    responseText = `Customer Found: ${result.customer.name}. Saved Address: ${result.customer.address}. Loyalty Points: ${result.customer.loyalty_points}`;
+                  } else {
+                    responseText = "Customer profile not found.";
+                  }
+                } else if (name === "submit_feedback") {
+                  responseText = result.message;
                 }
 
                 // Send Tool Response
