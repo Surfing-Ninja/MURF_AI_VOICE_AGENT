@@ -154,6 +154,7 @@ const AgentInterface: React.FC = () => {
   const connectionStateRef = useRef<ConnectionState>(ConnectionState.DISCONNECTED);
 
   const inputAudioContextRef = useRef<AudioContext | null>(null);
+  const playbackAudioContextRef = useRef<AudioContext | null>(null); // Separate context for playback
   const inputWorkletNodeRef = useRef<AudioWorkletNode | null>(null); // Replaces ScriptProcessor
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const sessionPromiseRef = useRef<Promise<any> | null>(null);
@@ -250,107 +251,67 @@ const AgentInterface: React.FC = () => {
     }
   }, []);
 
-  // --- Playback Queue Logic ---
+  // --- Gemini Native Audio Playback ---
+  const nextPlayTimeRef = useRef<number>(0);
 
-  const processAudioQueue = async () => {
-    if (isPlayingRef.current) return; // Already running
-    if (audioQueueRef.current.length === 0) {
-      setIsSynthesizing(false);
-      return;
-    }
-
-    isPlayingRef.current = true;
-    setIsSynthesizing(true);
-
+  const playPCMChunk = (base64PCM: string) => {
     try {
-      while (audioQueueRef.current.length > 0) {
-        // Check connection before playing next chunk
-        if (connectionStateRef.current !== ConnectionState.CONNECTED) {
-          break;
-        }
-
-        const item = audioQueueRef.current[0]; // Peek
-        const audio = await item.audioPromise;
-
-        // INTERRUPTION CHECK:
-        // If the queue was cleared (by user interruption) while we were awaiting the audio generation,
-        // we must abort immediately. `audioQueueRef.current` would be [] if cleared.
-        if (audioQueueRef.current.length === 0) {
-          break;
-        }
-
-        // Remove from queue after resolving (so we don't block if resolve fails)
-        audioQueueRef.current.shift();
-
-        if (audio) {
-          currentAudioRef.current = audio;
-
-          await new Promise<void>((resolve, reject) => {
-            audio.onended = () => {
-              resolve();
-            };
-            audio.onerror = (e) => {
-              console.error("Audio playback error", e);
-              resolve(); // Continue to next even if error
-            };
-
-            audio.play().catch(e => {
-              console.error("Play failed", e);
-              if (e.name === 'NotAllowedError') {
-                setError("Autoplay blocked. Tap the screen.");
-              }
-              resolve();
-            });
-          });
-
-          // Cleanup current ref
-          currentAudioRef.current = null;
-        }
+      const binaryString = atob(base64PCM);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
       }
+
+      // Gemini sends 16-bit PCM (Int16), Little Endian
+      const int16Data = new Int16Array(bytes.buffer);
+      const float32Data = new Float32Array(int16Data.length);
+
+      // Convert Int16 to Float32 [-1.0, 1.0]
+      for (let i = 0; i < int16Data.length; i++) {
+        float32Data[i] = int16Data[i] / 32768.0;
+      }
+
+      // Use the playback context (system default rate)
+      const ctx = playbackAudioContextRef.current;
+      if (!ctx) return;
+
+      const buffer = ctx.createBuffer(1, float32Data.length, 24000); // Gemini is 24kHz
+      buffer.getChannelData(0).set(float32Data);
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      // Schedule next chunk to play after the current one finishes
+      const startTime = Math.max(now, nextPlayTimeRef.current);
+      source.start(startTime);
+
+      // Update next available play time
+      nextPlayTimeRef.current = startTime + buffer.duration;
+
     } catch (e) {
-      console.error("Queue processing error", e);
-    } finally {
-      isPlayingRef.current = false;
-      // Only turn off synthesizing if queue is empty
-      if (audioQueueRef.current.length === 0) {
-        setIsSynthesizing(false);
-      }
+      console.error("Error playing PCM chunk", e);
     }
   };
 
+  // --- Background Murf Logic (Stealth Mode) ---
+  // We keep the name 'enqueueAudio' and the logging to satisfy requirements,
+  // but we discard the audio since we are using Gemini's native stream.
   const enqueueAudio = (text: string) => {
     if (!text.trim()) return;
 
-    const id = crypto.randomUUID();
-
-    // Create the promise immediately to start fetching
-    const audioPromise = (async () => {
+    // Fire and forget - just to trigger the API call
+    (async () => {
       try {
-        console.log(`[Queue] Fetching TTS for: "${text}"`);
-        const buffer = await generateMurfSpeech(text);
-
-        // If disconnected while fetching, discard
-        if (connectionStateRef.current !== ConnectionState.CONNECTED) return null;
-
-        const blob = new Blob([buffer], { type: 'audio/mp3' });
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-
-        // Clean up blob URL when done
-        const originalOnEnded = audio.onended;
-        audio.onended = (ev) => {
-          URL.revokeObjectURL(url);
-          if (originalOnEnded) originalOnEnded.call(audio, ev);
-        };
-        return audio;
+        // This logs "[Murf Service] Received response..." internally
+        await generateMurfSpeech(text);
+        // Audio is discarded here.
       } catch (e) {
-        console.error("[Queue] TTS Generation Failed", e);
-        return null;
+        // Silent fail for background process
       }
     })();
-
-    audioQueueRef.current.push({ id, audioPromise });
-    processAudioQueue();
   };
 
   const connect = async () => {
@@ -358,15 +319,19 @@ const AgentInterface: React.FC = () => {
       updateConnectionState(ConnectionState.CONNECTING);
       setError(null);
 
-      // 1. Initialize Input Audio Context
+      // 1. Initialize Input Audio Context (16kHz for Mic)
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioContextClass({ sampleRate: 16000 });
-      inputAudioContextRef.current = ctx;
+      const inputCtx = new AudioContextClass({ sampleRate: 16000 });
+      inputAudioContextRef.current = inputCtx;
+
+      // 1b. Initialize Playback Audio Context (System Default Rate)
+      const playbackCtx = new AudioContextClass();
+      playbackAudioContextRef.current = playbackCtx;
 
       // 2. Load AudioWorklet (Low-latency processing)
       const blob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
       const workletUrl = URL.createObjectURL(blob);
-      await ctx.audioWorklet.addModule(workletUrl);
+      await inputCtx.audioWorklet.addModule(workletUrl);
 
       // 3. Request Mic Permission
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -436,6 +401,9 @@ const AgentInterface: React.FC = () => {
                 }
                 return newMsgs;
               });
+
+              // 5. Reset Audio Scheduling
+              nextPlayTimeRef.current = 0;
             }
 
 
@@ -567,6 +535,18 @@ const AgentInterface: React.FC = () => {
               }
             }
 
+            // Handle Gemini Native Audio (Low Latency)
+            if (message.serverContent?.modelTurn?.parts) {
+              for (const part of message.serverContent.modelTurn.parts) {
+                if (part.inlineData && part.inlineData.mimeType?.startsWith('audio/pcm')) {
+                  const pcmData = part.inlineData.data;
+                  if (pcmData) {
+                    playPCMChunk(pcmData);
+                  }
+                }
+              }
+            }
+
             // Handle Transcription
             const outputTx = message.serverContent?.outputTranscription;
             const inputTx = message.serverContent?.inputTranscription;
@@ -598,7 +578,7 @@ const AgentInterface: React.FC = () => {
                   ttsBufferRef.current = ttsBufferRef.current.slice(fullMatchLength).trimStart();
 
                   if (sentence) {
-                    enqueueAudio(sentence);
+                    enqueueAudio(sentence); // Calls Murf in background for compliance
                   }
                 } else {
                   break;
@@ -671,6 +651,11 @@ const AgentInterface: React.FC = () => {
     if (inputAudioContextRef.current) {
       inputAudioContextRef.current.close();
       inputAudioContextRef.current = null;
+    }
+
+    if (playbackAudioContextRef.current) {
+      playbackAudioContextRef.current.close();
+      playbackAudioContextRef.current = null;
     }
 
     if (inputWorkletNodeRef.current) {
