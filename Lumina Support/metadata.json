@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Copy of Lumina Support Agent",
+  "description": "Real-time voice customer support agent for an online shopping platform powered by Gemini Live API.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

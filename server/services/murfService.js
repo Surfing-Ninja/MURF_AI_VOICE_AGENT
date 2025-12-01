@@ -19,7 +19,7 @@ const MURF_API_KEY = process.env.MURF_API_KEY;
 export async function generateAudioStream(text, options = {}) {
   try {
     console.log(`[Murf] 🔊 Generating audio for text: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
-    
+
     if (!text || text.trim().length === 0) {
       throw new Error('Text cannot be empty');
     }
@@ -28,9 +28,9 @@ export async function generateAudioStream(text, options = {}) {
       throw new Error('MURF_API_KEY not configured');
     }
 
-    // Murf API v1 format
+    // Murf API v1 format - Indian English voice
     const payload = {
-      voiceId: options.voiceId || 'en-US-natalie',
+      voiceId: options.voiceId || 'en-IN-aarav',  // Indian English male (Aarav)
       style: options.style || 'Conversational',
       text: text,
       rate: options.rate || 0,
@@ -59,12 +59,12 @@ export async function generateAudioStream(text, options = {}) {
     // Check if response contains audioFile URL
     if (response.data && response.data.audioFile) {
       console.log('[Murf] Got audio URL, downloading...');
-      
+
       const audioResponse = await axios.get(response.data.audioFile, {
         responseType: 'arraybuffer',
         timeout: 30000
       });
-      
+
       console.log(`[Murf] ✓ Audio downloaded (${audioResponse.data.length} bytes)`);
       return Buffer.from(audioResponse.data);
     }
@@ -73,14 +73,14 @@ export async function generateAudioStream(text, options = {}) {
 
   } catch (error) {
     console.error('[Murf] ❌ Error:', error.message);
-    
+
     if (error.response) {
       console.error('[Murf] API Error:', {
         status: error.response.status,
         data: JSON.stringify(error.response.data)
       });
     }
-    
+
     throw error;
   }
 }
@@ -100,12 +100,20 @@ export async function generateFromTOON(toonResponse) {
   // Map emotion to style
   const styleMap = {
     'happy': 'Excited',
-    'sad': 'Sad', 
+    'sad': 'Sad',
     'angry': 'Angry',
     'neutral': 'Conversational'
   };
 
-  const style = styleMap[toonResponse.emotion?.toLowerCase()] || 'Conversational';
+  let style = styleMap[toonResponse.emotion?.toLowerCase()] || 'Conversational';
+
+  // Indian voices (en-IN-*) only support Conversational style
+  // Use Conversational for all emotions with Indian voices
+  const voiceId = 'en-IN-aarav'; // Current voice
+  if (voiceId.startsWith('en-IN-')) {
+    style = 'Conversational'; // Force Conversational for Indian voices
+    console.log('[Murf] Using Conversational style for Indian voice');
+  }
 
   return await generateAudioStream(toonResponse.text, { style });
 }

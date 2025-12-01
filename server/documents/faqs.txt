@@ -1,0 +1,240 @@
+DesiMart Frequently Asked Questions (FAQs)
+
+=== ORDER RELATED ===
+
+Q: How do I track my order?
+A: You can track your order in three ways:
+1. Log in to your DesiMart account and go to "My Orders"
+2. Click the tracking link sent to your email
+3. Call our support at 1800-123-4567 with your order number
+You'll see real-time updates including: Order confirmed, Packed, Shipped, Out for delivery, Delivered.
+
+Q: Can I change my delivery address after placing the order?
+A: Yes, you can change the delivery address before the order is shipped. Go to "My Orders", select the order, and click "Change Address". If the order is already shipped, please contact our support team immediately. We'll try to redirect it, but cannot guarantee success.
+
+Q: What if I receive a damaged or defective product?
+A: We're sorry to hear that! Please:
+1. Take clear photos/videos of the damage
+2. Contact us within 48 hours of delivery
+3. We'll arrange free pickup and send a replacement immediately
+4. No questions asked - your satisfaction is our priority
+
+Q: How do I cancel my order?
+A: If your order hasn't shipped yet:
+1. Go to "My Orders"
+2. Select the order
+3. Click "Cancel Order"
+4. Refund will be processed immediately
+If your order is already shipped, you can refuse delivery at your doorstep or return it after delivery.
+
+Q: I received the wrong product. What should I do?
+A: Please contact us immediately at support@desimart.com or call 1800-123-4567. We'll:
+1. Arrange free pickup of the wrong product
+2. Send the correct product on priority
+3. Ensure you get it within 2-3 business days
+We sincerely apologize for the inconvenience.
+
+Q: Can I modify my order after placing it?
+A: Unfortunately, we cannot modify orders after they're placed. You can cancel the order (if not shipped) and place a new one with correct details.
+
+=== PAYMENT & REFUNDS ===
+
+Q: What payment methods do you accept?
+A: We accept:
+- All major Credit/Debit cards (Visa, Mastercard, RuPay, Amex)
+- Net Banking from all major banks
+- UPI (Google Pay, PhonePe, Paytm, BHIM)
+- Digital Wallets (Paytm, Mobikwik, Amazon Pay)
+- EMI (No-cost EMI on select cards)
+- Cash on Delivery (for orders below ₹50,000)
+
+Q: Is it safe to use my card on DesiMart?
+A: Absolutely! We use bank-grade encryption (SSL/TLS) and comply with PCI-DSS standards. We never store your complete card details on our servers. Your payment information is handled by trusted payment gateways only.
+
+Q: How long does it take to receive a refund?
+A: Refund timelines:
+- DesiMart Wallet: Instant credit
+- Original payment method: 7-10 business days
+- Bank transfer: 5-7 business days
+- Cash on Delivery returns: 7-10 business days to bank account
+The refund is processed within 24 hours of receiving the returned product at our warehouse.
+
+Q: Do you offer EMI options?
+A: Yes! No-cost EMI is available on orders above ₹10,000 with select bank credit cards. Available tenures: 3, 6, 9, 12 months. Check available EMI options at checkout.
+
+Q: Can I pay part amount with wallet and part with card?
+A: Yes, you can split payment using:
+- DesiMart Wallet + Card
+- DesiMart Wallet + UPI
+- Gift cards + Any payment method
+
+Q: What if my payment fails but money is deducted?
+A: Don't worry! The amount will be automatically refunded to your account within 5-7 business days. If you don't receive it, please contact us with transaction details.
+
+=== DELIVERY ===
+
+Q: How long does delivery take?
+A: Delivery timeline depends on your location:
+- Metro Cities: 1-3 business days
+- Tier 2 Cities: 3-5 business days
+- Tier 3 Cities: 5-7 business days
+- Remote areas: 7-10 business days
+Express delivery (2 days) and same-day delivery (select metros) are also available.
+
+Q: Do you deliver on Sundays and public holidays?
+A: Yes, we deliver 7 days a week including most public holidays. However, delivery may be delayed during major festivals. We'll keep you updated.
+
+Q: What is your free shipping policy?
+A: We offer FREE standard shipping on all orders above ₹499. Orders below ₹499 have a ₹99 shipping fee.
+
+Q: Can I get same-day delivery?
+A: Yes! Same-day delivery is available in select areas of Mumbai, Delhi NCR, Bangalore, and Hyderabad for orders placed before 12 PM. Additional ₹199 charge applies.
+
+Q: What if no one is home during delivery?
+A: Our delivery partner will attempt delivery 3 times. They'll leave a note or call you. If all 3 attempts fail, the order will be returned to our warehouse. You can then request re-delivery or cancel for a refund.
+
+Q: Can I pick up my order from your store/warehouse?
+A: Currently, we operate online-only and don't offer in-store pickup. All orders must be delivered to your provided address.
+
+=== RETURNS & EXCHANGES ===
+
+Q: What is your return policy?
+A: We offer a hassle-free 30-day return policy. If you're not satisfied, return the product within 30 days of delivery for a full refund. Product should be in original condition with all accessories and packaging.
+
+Q: How do I return a product?
+A: Simple process:
+1. Go to "My Orders"
+2. Select the item to return
+3. Choose return reason
+4. We'll arrange free pickup from your address
+5. Refund processed within 7-10 days after quality check
+
+Q: Are there any products I cannot return?
+A: Yes, some products are non-returnable:
+- Products with tampered serial numbers
+- Opened software/games/digital content
+- Personal care items (used earbuds)
+- Clearance/final sale items
+- Products damaged due to misuse
+
+Q: Do you offer exchanges?
+A: Currently, we don't offer direct exchanges. Please return the product for a refund and place a new order for the desired item.
+
+Q: Is return pickup free?
+A: Yes, we offer FREE pickup for all returns within India. Our logistics partner will collect the product from your doorstep.
+
+=== ACCOUNT & PROFILE ===
+
+Q: How do I创建一个账户?
+A: Creating an account is easy:
+1. Click "Sign Up" on homepage
+2. Enter your email and create password
+3. Verify your email
+4. Add your name and phone number
+You're all set! You can also sign up using Google or Facebook.
+
+Q: I forgot my password. How do I reset it?
+A: Click "Forgot Password" on the login page, enter your email, and we'll send you a password reset link. Follow the link to create a new password.
+
+Q: How do I update my profile information?
+A: Log in to your account, go to "My Profile", and update your:
+- Name
+- Email
+- Phone number
+- Saved addresses
+- Payment methods
+
+Q: Can I delete my account?
+A: Yes, you can delete your account from "Account Settings". Please note:
+- All ongoing orders must be completed first
+- Deletion is permanent and data cannot be recovered
+- DesiMart Wallet balance will be refunded to your bank
+
+=== WARRANTY & SERVICE ===
+
+Q: What warranty do products come with?
+A: All products come with manufacturer warranty as specified in the product details. Warranty duration varies by brand and product category (typically 1-2 years).
+
+Q: How do I claim warranty?
+A: If you face any issues:
+1. Contact our support with order details
+2. Describe the issue (photos/videos help)
+3. We'll diagnose remotely
+4. If needed, we'll arrange pickup for repair/replacement
+5. Get your repaired/replaced product within 7-14 days
+
+Q: Can I extend my warranty?
+A: Yes! We offer extended warranty plans (1-3 additional years) at checkout or within 30 days of purchase. Extended warranty covers accidental damage and screen damage too.
+
+=== OFFERS & DISCOUNTS ===
+
+Q: How do I apply a coupon code?
+A: At checkout:
+1. Enter your coupon code in the "Apply Coupon" box
+2. Click "Apply"
+3. Discount will be reflected in your total
+Make sure to check the coupon terms (minimum order value, product categories, expiry date).
+
+Q: Can I use multiple coupons on one order?
+A: No, only one coupon code can be used per order. However, you can combine coupons with ongoing sales and bank offers.
+
+Q: What is DesiMart Wallet?
+A: DesiMart Wallet is our digital wallet. Add money to your wallet and use it for faster checkouts. You also earn cashback on purchases which goes to your wallet.
+
+Q: Do you have student discounts?
+A: Yes! Students can get 10% extra discount on select products. Verify your student status through our partner SheerID to unlock the discount.
+
+Q: When are your major sales?
+A: We run major sales during:
+- Republic Day Sale (January)
+- Holi Sale (March)
+- Summer Sale (May-June)
+- Independence Day Sale (August)
+- Diwali Sale (October-November)
+- Year-End Sale (December)
+
+=== TECHNICAL ISSUES ===
+
+Q: The website is not loading. What should I do?
+A: Try these steps:
+1. Refresh the page (Ctrl+R)
+2. Clear browser cache and cookies
+3. Try a different browser
+4. Check your internet connection
+If the issue persists, contact us at support@desimart.com
+
+Q: I'm unable to place an order. What's wrong?
+A: This could be due to:
+- Payment gateway timeout (retry payment)
+- Product out of stock
+- Delivery not available in your area
+- Technical glitch
+Please try again or contact support for assistance.
+
+Q: My order shows "Payment Pending" but money is deducted.
+A: This is usually a temporary issue. Your order will be confirmed within 30 minutes. If not, the amount will be refunded automatically within 5-7 days.
+
+=== SECURITY & FRAUD ===
+
+Q: I received a suspicious email claiming to be from DesiMart.
+A: We never ask for your password, OTP, or complete card details via email. If you receive suspicious emails:
+1. Do NOT click any links
+2. Do NOT share personal information
+3. Forward the email to security@desimart.com
+4. Delete the email
+
+Q: How do I report a fraudulent transaction?
+A: Immediately:
+1. Call our fraud helpline: 1800-123-4568
+2. Block your card/payment method
+3. File a police complaint
+4. Email us at fraud@desimart.com with details
+We'll investigate and take necessary action.
+
+Q: Is my personal information safe with DesiMart?
+A: Absolutely! We follow strict data protection practices:
+- All data encrypted (SSL/TLS)
+- PCI-DSS compliant
+- Regular security audits
+- We NEVER sell your data to third parties
+Read our Privacy Policy for details.

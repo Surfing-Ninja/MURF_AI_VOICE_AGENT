@@ -9,6 +9,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Cache for embeddings to avoid duplicate API calls
+const embeddingCache = new Map();
+const CACHE_MAX_SIZE = 100;
+const CACHE_TTL = 3600000; // 1 hour
+
+// Rate limiting
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 200; // 200ms between requests (was 100ms)
+
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -120,7 +129,7 @@ function parseTOON(response) {
     }
 
     const [, index, properties, text] = match;
-    
+
     // Parse properties
     const props = {};
     properties.split(',').forEach(prop => {
@@ -172,10 +181,10 @@ async function executeToolIfNeeded(toonResponse) {
 
   try {
     console.log(`[Gemini] 🔧 Executing tool: ${toolName}`);
-    
+
     // Extract tool parameters from TOON response
     const params = toonResponse.toolParams;
-    
+
     // Execute tool based on type
     let result;
     switch (toolName) {
@@ -219,14 +228,14 @@ export async function generateResponse(audioTranscript, contextFromRAG = '', ima
     console.log(`[Gemini] Has Image: ${!!imageBase64}`);
 
     // Select model based on whether we have vision input
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
       systemInstruction: SYSTEM_PROMPT
     });
 
     // Build prompt with context
     let prompt = `User Query: ${audioTranscript}\n\n`;
-    
+
     if (contextFromRAG) {
       prompt += `Relevant Context from Knowledge Base:\n${contextFromRAG}\n\n`;
     }
@@ -263,10 +272,10 @@ export async function generateResponse(audioTranscript, contextFromRAG = '', ima
 
     // Execute tool if needed
     const toolResult = await executeToolIfNeeded(toonResponse);
-    
+
     if (toolResult) {
       toonResponse.toolResult = toolResult;
-      
+
       // If tool execution returned additional info, append it to response text
       if (toolResult.message) {
         toonResponse.text += ` ${toolResult.message}`;
@@ -277,7 +286,7 @@ export async function generateResponse(audioTranscript, contextFromRAG = '', ima
 
   } catch (error) {
     console.error('[Gemini] ❌ Error generating response:', error);
-    
+
     // Return error in TOON format
     return {
       text: "I apologize, but I'm having trouble processing your request right now. Please try again.",
@@ -290,24 +299,58 @@ export async function generateResponse(audioTranscript, contextFromRAG = '', ima
 }
 
 /**
- * Generate embeddings for text (used by RAG service)
- * @param {string} text - Text to embed
+ * Generate embeddings for text using LOCAL SBERT service
+ * @param {string} text - Text to embed  
  * @returns {Promise<Array<number>>} - Embedding vector
  */
 export async function generateEmbedding(text) {
   try {
-    console.log(`[Gemini] Generating embedding for text: "${text.substring(0, 50)}..."`);
+    // Check cache first
+    const cacheKey = text.substring(0, 200);
+    const cached = embeddingCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+      console.log('[SBERT] ⚡ Using cached embedding');
+      return cached.embedding;
+    }
 
-    const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
-    const result = await model.embedContent(text);
-    
-    const embedding = result.embedding.values;
-    console.log(`[Gemini] ✓ Embedding generated (dimension: ${embedding.length})`);
-    
+    console.log(`[SBERT] Generating embedding for text: "${text.substring(0, 50)}..."`);
+
+    // Call local SBERT service (no API quota!)
+    const response = await fetch('http://localhost:5001/embed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    if (!response.ok) {
+      throw new Error(`SBERT service error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const embedding = data.embedding;
+
+    if (!embedding || embedding.length === 0) {
+      throw new Error('Embedding generation failed - empty result');
+    }
+
+    console.log(`[SBERT] ✓ Embedding generated (dimension: ${embedding.length})`);
+
+    // Cache the result
+    embeddingCache.set(cacheKey, {
+      embedding,
+      timestamp: Date.now()
+    });
+
+    // Limit cache size
+    if (embeddingCache.size > CACHE_MAX_SIZE) {
+      const firstKey = embeddingCache.keys().next().value;
+      embeddingCache.delete(firstKey);
+    }
+
     return embedding;
 
   } catch (error) {
-    console.error('[Gemini] Error generating embedding:', error);
+    console.error('[SBERT] Error generating embedding:', error);
     throw error;
   }
 }
@@ -317,7 +360,7 @@ export async function generateEmbedding(text) {
  */
 export async function generateResponseStreaming(audioTranscript, contextFromRAG = '', onChunk) {
   try {
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
       systemInstruction: SYSTEM_PROMPT
     });
@@ -334,7 +377,7 @@ export async function generateResponseStreaming(audioTranscript, contextFromRAG 
     for await (const chunk of result.stream) {
       const chunkText = chunk.text();
       fullResponse += chunkText;
-      
+
       if (onChunk && typeof onChunk === 'function') {
         onChunk(chunkText);
       }
@@ -348,9 +391,9 @@ export async function generateResponseStreaming(audioTranscript, contextFromRAG 
   }
 }
 
-export default { 
-  generateResponse, 
+export default {
+  generateResponse,
   generateEmbedding,
   generateResponseStreaming,
-  parseTOON 
+  parseTOON
 };

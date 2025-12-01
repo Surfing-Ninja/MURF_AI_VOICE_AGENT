@@ -71,8 +71,8 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     services: {
       deepgram: !!process.env.DEEPGRAM_API_KEY,
@@ -101,6 +101,11 @@ function initializeSession(clientId) {
   return {
     clientId,
     deepgramConnection: null,
+    audioBuffer: [],
+    lastTranscript: '',
+    lastTranscriptTime: 0,  // Track when last transcript was received
+    pendingResponse: false,  // Track if we're currently processing a response
+    bargeInWindow: 2000,      // 2 second window to detect barge-ins
     screenCapture: null, // Store latest screen capture
     conversationHistory: [],
     connectedAt: new Date(),
@@ -114,7 +119,7 @@ function initializeSession(clientId) {
  */
 async function processVoiceInteraction(clientId, transcript, ws) {
   const session = sessions.get(clientId);
-  
+
   if (!session) {
     console.error(`[${clientId}] Session not found`);
     return;
@@ -131,14 +136,14 @@ async function processVoiceInteraction(clientId, transcript, ws) {
   try {
     console.log(`[${clientId}] ═══════════════════════════════════════`);
     console.log(`[${clientId}] 🎙️  USER: "${transcript}"`);
-    
+
     // Step 1: Query RAG for relevant context
     ws.send(JSON.stringify({
       type: 'status',
       message: 'Searching knowledge base...',
       timestamp: Date.now()
     }));
-    
+
     const ragContext = await queryContext(transcript);
     console.log(`[${clientId}] 📚 RAG Context: ${ragContext ? ragContext.length + ' chars' : 'none'}`);
 
@@ -148,13 +153,13 @@ async function processVoiceInteraction(clientId, transcript, ws) {
       message: 'Thinking...',
       timestamp: Date.now()
     }));
-    
+
     const geminiResponse = await generateResponse(
-      transcript, 
+      transcript,
       ragContext,
       session.screenCapture // Include screen capture if available
     );
-    
+
     console.log(`[${clientId}] 🧠 GEMINI: "${geminiResponse.text}"`);
     console.log(`[${clientId}]    Emotion: ${geminiResponse.emotion || 'neutral'}`);
     if (geminiResponse.tool) {
@@ -180,7 +185,7 @@ async function processVoiceInteraction(clientId, transcript, ws) {
       message: 'Generating voice...',
       timestamp: Date.now()
     }));
-    
+
     const audioBuffer = await generateFromTOON(geminiResponse);
     console.log(`[${clientId}] 🔊 MURF: Generated ${audioBuffer.length} bytes of audio`);
 
@@ -214,7 +219,7 @@ async function processVoiceInteraction(clientId, transcript, ws) {
 
   } catch (error) {
     console.error(`[${clientId}] ❌ Error in voice pipeline:`, error);
-    
+
     ws.send(JSON.stringify({
       type: 'error',
       message: 'Sorry, I encountered an error processing your request.',
@@ -231,7 +236,7 @@ async function processVoiceInteraction(clientId, transcript, ws) {
  */
 wss.on('connection', (ws, req) => {
   const clientId = Math.random().toString(36).substring(7);
-  
+
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`[${clientId}] 🔌 Client connected from ${req.socket.remoteAddress}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -255,6 +260,53 @@ wss.on('connection', (ws, req) => {
     timestamp: Date.now()
   }));
 
+  // Send initial greeting with TTS
+  setTimeout(async () => {
+    try {
+      const greetingText = "Namaste! Welcome to DesiMart support. I am Samar. How can I help you today?";
+      const greetingResponse = {
+        text: greetingText,
+        emotion: 'happy'
+      };
+
+      // Send greeting as AI response
+      ws.send(JSON.stringify({
+        type: 'ai_response',
+        text: greetingResponse.text,
+        emotion: greetingResponse.emotion,
+        isGreeting: true,
+        timestamp: Date.now()
+      }));
+
+      // Generate TTS for greeting
+      console.log(`[${clientId}] 🎤 Generating greeting TTS...`);
+      const audioBuffer = await generateFromTOON(greetingResponse);
+
+      // Send TTS audio
+      ws.send(JSON.stringify({
+        type: 'tts_start',
+        timestamp: Date.now()
+      }));
+
+      ws.send(JSON.stringify({
+        type: 'tts_audio',
+        audio: audioBuffer.toString('base64'),
+        format: 'mp3',
+        timestamp: Date.now()
+      }));
+
+      ws.send(JSON.stringify({
+        type: 'tts_end',
+        timestamp: Date.now()
+      }));
+
+      console.log(`[${clientId}] ✓ Initial greeting sent with audio`);
+    } catch (error) {
+      console.error(`[${clientId}] ⚠️ Error sending greeting:`, error.message);
+      // Non-fatal - connection still works
+    }
+  }, 1000); // 1 second delay to ensure client is ready
+
   /**
    * Handle incoming messages (Binary Audio OR JSON Control)
    */
@@ -265,26 +317,27 @@ wss.on('connection', (ws, req) => {
         // Initialize Deepgram connection if not exists
         if (!session.deepgramConnection) {
           console.log(`[${clientId}] Creating Deepgram live connection...`);
-          
+
           // Simple config - let Deepgram auto-detect everything
           session.deepgramConnection = deepgram.listen.live({
             model: 'nova-2',
             smart_format: true,
             interim_results: true,
-            language: 'en-US'
+            language: 'en-US',
+            endpointing: 800  // Wait 800ms of silence (gentle, prevents cut-offs)
           });
 
           // Handle connection open
           session.deepgramConnection.on('open', () => {
             console.log(`[${clientId}] ✓ Deepgram connection established`);
-            
+
             // Reset warning flag
             session.deepgramClosedWarningShown = false;
-            
+
             // Send any buffered audio with small delays
             if (session.audioBuffer && session.audioBuffer.length > 0) {
               console.log(`[${clientId}] 📤 Sending ${session.audioBuffer.length} buffered audio chunks`);
-              
+
               session.audioBuffer.forEach((chunk, index) => {
                 setTimeout(() => {
                   if (session.deepgramConnection && session.deepgramConnection.getReadyState() === 1) {
@@ -294,7 +347,7 @@ wss.on('connection', (ws, req) => {
               });
               session.audioBuffer = [];
             }
-            
+
             // Set up keepalive
             session.deepgramKeepalive = setInterval(() => {
               if (session.deepgramConnection && session.deepgramConnection.getReadyState() === 1) {
@@ -318,79 +371,109 @@ wss.on('connection', (ws, req) => {
             const transcript = data.channel?.alternatives?.[0]?.transcript;
             const isFinal = data.is_final;
             const speechFinal = data.speech_final;
-            
+
             // Only process if transcript exists, is not empty, AND speech is final
-            if (transcript && transcript.trim().length > 0 && speechFinal) {
-              console.log(`[${clientId}] 🎤 Deepgram Transcript (speech_final): "${transcript}"`);
-              
-              // Send transcript to client
-              ws.send(JSON.stringify({
-                type: 'transcript',
-                text: transcript,
-                isFinal: true,
-                timestamp: Date.now()
-              }));
+            if (isFinal && speechFinal) {
+              const transcript = data.channel.alternatives[0].transcript;
 
-              // Generate AI response using AI Controller
-              try {
-                console.log(`[${clientId}] 🧠 Calling AI Controller...`);
-                const aiResponse = await generateResponse(transcript, session.conversationHistory);
-                
-                console.log(`[${clientId}] ✓ AI Response - Text: "${aiResponse.text}"`);
-                console.log(`[${clientId}] ✓ AI Response - Emotion: ${aiResponse.emotion}`);
-                
-                // Send AI response to client
-                ws.send(JSON.stringify({
-                  type: 'ai_response',
-                  text: aiResponse.text,
-                  emotion: aiResponse.emotion,
-                  timestamp: Date.now()
-                }));
+              if (transcript && transcript.trim().length > 0) {
+                console.log(`[${clientId}] 🎤 Deepgram Transcript (speech_final): "${transcript}"`);
 
-                // Store in conversation history
-                session.conversationHistory.push({
-                  user: transcript,
-                  assistant: aiResponse.text,
-                  timestamp: new Date()
-                });
+                // BARGE-IN DETECTION: Check if user is continuing to speak
+                const now = Date.now();
+                const timeSinceLastTranscript = now - session.lastTranscriptTime;
 
-                // Generate TTS audio using Murf
-                try {
-                  console.log(`[${clientId}] 🔊 Generating TTS audio...`);
-                  const audioBuffer = await generateFromTOON(aiResponse);
-                  
-                  // Send audio as binary blob
-                  ws.send(JSON.stringify({
-                    type: 'tts_start',
-                    timestamp: Date.now()
-                  }));
-                  
-                  // Send audio data as base64 (since we're using JSON protocol)
-                  ws.send(JSON.stringify({
-                    type: 'tts_audio',
-                    audio: audioBuffer.toString('base64'),
-                    format: 'mp3',
-                    timestamp: Date.now()
-                  }));
-                  
-                  ws.send(JSON.stringify({
-                    type: 'tts_end',
-                    timestamp: Date.now()
-                  }));
-                  
-                  console.log(`[${clientId}] ✓ TTS audio sent (${audioBuffer.length} bytes)`);
-                } catch (ttsError) {
-                  console.error(`[${clientId}] ⚠️ TTS error (continuing without audio):`, ttsError.message);
-                  // Non-fatal: user still gets text response
+                // If previous response is pending AND new transcript within barge-in window
+                if (session.pendingResponse && timeSinceLastTranscript < session.bargeInWindow) {
+                  console.log(`[${clientId}] 🔄 Barge-in detected! User continued speaking. Skipping previous partial query.`);
+                  // Cancel pending response flag - we'll process the latest complete query instead
+                  session.pendingResponse = false;
+                  // Update transcript and timestamp
+                  session.lastTranscript = transcript;
+                  session.lastTranscriptTime = now;
+                  // Don't process this yet - wait for the complete query
+                  return;
                 }
-                
-              } catch (error) {
-                console.error(`[${clientId}] ❌ AI Controller error:`, error);
-                ws.send(JSON.stringify({
-                  type: 'error',
-                  message: 'Failed to generate AI response',
-                  timestamp: Date.now()
-                }));
+
+                // Update session tracking
+                session.lastTranscript = transcript;
+                session.lastTranscriptTime = now;
+                session.pendingResponse = true;
+
+                // Small delay to allow for potential barge-in
+                setTimeout(async () => {
+                  // Check if we're still the latest query (no barge-in occurred)
+                  if (session.lastTranscript === transcript && session.pendingResponse) {
+                    console.log(`[${clientId}] 🧠 Calling AI Controller...`);
+
+                    try {
+                      // Send transcript to client
+                      ws.send(JSON.stringify({
+                        type: 'transcript',
+                        text: transcript,
+                        isFinal: true,
+                        timestamp: Date.now()
+                      }));
+
+                      const aiResponse = await generateResponse(transcript, session.conversationHistory);
+
+                      console.log(`[${clientId}] ✓ AI Response - Text: "${aiResponse.text}"`);
+                      console.log(`[${clientId}] ✓ AI Response - Emotion: ${aiResponse.emotion}`);
+
+                      // Send response to client
+                      ws.send(JSON.stringify({
+                        type: 'ai_response',
+                        text: aiResponse.text,
+                        emotion: aiResponse.emotion,
+                        timestamp: Date.now()
+                      }));
+
+                      // Store in conversation history
+                      session.conversationHistory.push({
+                        user: transcript,
+                        assistant: aiResponse.text,
+                        timestamp: new Date()
+                      });
+
+                      // Generate TTS audio
+                      console.log(`[${clientId}] 🔊 Generating TTS audio...`);
+                      const audioBuffer = await generateFromTOON(aiResponse);
+
+                      // Send TTS audio
+                      ws.send(JSON.stringify({
+                        type: 'tts_start',
+                        timestamp: Date.now()
+                      }));
+
+                      ws.send(JSON.stringify({
+                        type: 'tts_audio',
+                        audio: audioBuffer.toString('base64'),
+                        format: 'mp3',
+                        timestamp: Date.now()
+                      }));
+
+                      ws.send(JSON.stringify({
+                        type: 'tts_end',
+                        timestamp: Date.now()
+                      }));
+
+                      console.log(`[${clientId}] ✓ TTS audio sent (${audioBuffer.length} bytes)`);
+
+                    } catch (error) {
+                      console.error(`[${clientId}] ❌ Error in AI pipeline:`, error.message);
+
+                      ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Failed to generate response',
+                        timestamp: Date.now()
+                      }));
+                    } finally {
+                      session.pendingResponse = false;
+                    }
+                  } else {
+                    console.log(`[${clientId}] ⏭️ Skipping outdated query - newer input received`);
+                  }
+                }, 300); // 300ms delay to detect rapid follow-up speech
               }
             } else if (transcript && transcript.trim().length > 0) {
               // Log interim results but don't process
@@ -413,7 +496,7 @@ wss.on('connection', (ws, req) => {
           // Handle connection close
           session.deepgramConnection.on('close', (closeEvent) => {
             console.log(`[${clientId}] Deepgram connection closed. Code: ${closeEvent?.code}, Reason: ${closeEvent?.reason || 'No reason'}`);
-            
+
             // Clear keepalive
             if (session.deepgramKeepalive) {
               clearInterval(session.deepgramKeepalive);
@@ -425,7 +508,7 @@ wss.on('connection', (ws, req) => {
         // Send audio chunk to Deepgram
         if (session.deepgramConnection) {
           const readyState = session.deepgramConnection.getReadyState();
-          
+
           if (readyState === 1) {
             // Connection is OPEN - send audio directly
             session.deepgramConnection.send(data);
@@ -453,30 +536,31 @@ wss.on('connection', (ws, req) => {
           // Start recording - initialize Deepgram stream
           case 'start_recording':
             console.log(`[${clientId}] 🎤 Recording started`);
-            
+
             // Note: The Deepgram connection is usually already created by the binary audio handler
             if (!session.deepgramConnection) {
               console.log(`[${clientId}] Creating Deepgram live connection (from start_recording)...`);
-              
+
               // Simple config - let Deepgram auto-detect
               session.deepgramConnection = deepgram.listen.live({
                 model: 'nova-2',
                 smart_format: true,
                 interim_results: true,
-                language: 'en-US'
+                language: 'en-US',
+                endpointing: 800  // Wait 800ms of silence (gentle, prevents cut-offs)
               });
 
               // Handle connection open
               session.deepgramConnection.on('open', () => {
                 console.log(`[${clientId}] ✓ Deepgram connection established`);
-                
+
                 // Reset warning flag
                 session.deepgramClosedWarningShown = false;
-                
+
                 // Send any buffered audio with small delays
                 if (session.audioBuffer && session.audioBuffer.length > 0) {
                   console.log(`[${clientId}] 📤 Sending ${session.audioBuffer.length} buffered audio chunks`);
-                  
+
                   session.audioBuffer.forEach((chunk, index) => {
                     setTimeout(() => {
                       if (session.deepgramConnection && session.deepgramConnection.getReadyState() === 1) {
@@ -486,14 +570,14 @@ wss.on('connection', (ws, req) => {
                   });
                   session.audioBuffer = [];
                 }
-                
+
                 // Set up keepalive using Deepgram's proper keepAlive() method
                 session.deepgramKeepalive = setInterval(() => {
                   if (session.deepgramConnection && session.deepgramConnection.getReadyState() === 1) {
                     session.deepgramConnection.keepAlive();
                   }
                 }, 5000);
-                
+
                 ws.send(JSON.stringify({
                   type: 'stt_ready',
                   message: 'Speech-to-text ready',
@@ -516,11 +600,11 @@ wss.on('connection', (ws, req) => {
                 const transcript = data.channel?.alternatives?.[0]?.transcript;
                 const isFinal = data.is_final;
                 const speechFinal = data.speech_final;
-                
+
                 // Only process if transcript exists, is not empty, AND speech is final
                 if (transcript && transcript.trim().length > 0 && speechFinal) {
                   console.log(`[${clientId}] 🎤 Deepgram Transcript (speech_final): "${transcript}"`);
-                  
+
                   // Send transcript to client
                   ws.send(JSON.stringify({
                     type: 'transcript',
@@ -533,10 +617,10 @@ wss.on('connection', (ws, req) => {
                   try {
                     console.log(`[${clientId}] 🧠 Calling AI Controller...`);
                     const aiResponse = await generateResponse(transcript, session.conversationHistory);
-                    
+
                     console.log(`[${clientId}] ✓ AI Response - Text: "${aiResponse.text}"`);
                     console.log(`[${clientId}] ✓ AI Response - Emotion: ${aiResponse.emotion}`);
-                    
+
                     // Send AI response to client
                     ws.send(JSON.stringify({
                       type: 'ai_response',
@@ -556,13 +640,13 @@ wss.on('connection', (ws, req) => {
                     try {
                       console.log(`[${clientId}] 🔊 Generating TTS audio...`);
                       const audioBuffer = await generateFromTOON(aiResponse);
-                      
+
                       // Send audio as binary blob
                       ws.send(JSON.stringify({
                         type: 'tts_start',
                         timestamp: Date.now()
                       }));
-                      
+
                       // Send audio data as base64 (since we're using JSON protocol)
                       ws.send(JSON.stringify({
                         type: 'tts_audio',
@@ -570,18 +654,18 @@ wss.on('connection', (ws, req) => {
                         format: 'mp3',
                         timestamp: Date.now()
                       }));
-                      
+
                       ws.send(JSON.stringify({
                         type: 'tts_end',
                         timestamp: Date.now()
                       }));
-                      
+
                       console.log(`[${clientId}] ✓ TTS audio sent (${audioBuffer.length} bytes)`);
                     } catch (ttsError) {
                       console.error(`[${clientId}] ⚠️ TTS error (continuing without audio):`, ttsError.message);
                       // Non-fatal: user still gets text response
                     }
-                    
+
                   } catch (error) {
                     console.error(`[${clientId}] ❌ AI Controller error:`, error);
                     ws.send(JSON.stringify({
@@ -611,7 +695,7 @@ wss.on('connection', (ws, req) => {
               // Handle connection close
               session.deepgramConnection.on('close', (closeEvent) => {
                 console.log(`[${clientId}] Deepgram connection closed. Code: ${closeEvent?.code}, Reason: ${closeEvent?.reason || 'No reason'}`);
-                
+
                 // Clear keepalive
                 if (session.deepgramKeepalive) {
                   clearInterval(session.deepgramKeepalive);
@@ -619,7 +703,7 @@ wss.on('connection', (ws, req) => {
                 }
               });
             }
-            
+
             ws.send(JSON.stringify({
               type: 'recording_started',
               timestamp: Date.now()
@@ -629,7 +713,7 @@ wss.on('connection', (ws, req) => {
           // Stop recording - keep connection open for next interaction
           case 'stop_recording':
             console.log(`[${clientId}] ⏸️  Recording stopped`);
-            
+
             ws.send(JSON.stringify({
               type: 'recording_stopped',
               timestamp: Date.now()
@@ -639,12 +723,12 @@ wss.on('connection', (ws, req) => {
           // Screen capture from "Look Over My Shoulder"
           case 'screen_capture':
             console.log(`[${clientId}] 📸 Screen capture received (${message.image?.length || 0} bytes)`);
-            
+
             // Store screen capture in session (base64 without prefix)
             if (message.image) {
               // Remove data:image/png;base64, prefix if present
               session.screenCapture = message.image.replace(/^data:image\/\w+;base64,/, '');
-              
+
               ws.send(JSON.stringify({
                 type: 'screen_capture_received',
                 message: 'Screen capture stored. I can see your screen now.',
@@ -694,7 +778,7 @@ wss.on('connection', (ws, req) => {
   // Handle client disconnection
   ws.on('close', (code, reason) => {
     console.log(`[${clientId}] 👋 Client disconnected. Code: ${code}`);
-    
+
     // Clean up Deepgram connection
     const session = sessions.get(clientId);
     if (session?.deepgramConnection) {
@@ -705,10 +789,10 @@ wss.on('connection', (ws, req) => {
         console.error(`[${clientId}] Error closing Deepgram:`, error);
       }
     }
-    
+
     // Remove session
     sessions.delete(clientId);
-    
+
     console.log(`[${clientId}] Session cleaned up`);
   });
 });
@@ -741,7 +825,7 @@ process.on('SIGINT', shutdown);
 
 function shutdown() {
   console.log('\n⏳ Shutting down gracefully...');
-  
+
   // Close all Deepgram connections
   sessions.forEach((session, clientId) => {
     if (session.deepgramConnection) {
@@ -753,7 +837,7 @@ function shutdown() {
       }
     }
   });
-  
+
   server.close(() => {
     console.log('✅ Server closed');
     process.exit(0);

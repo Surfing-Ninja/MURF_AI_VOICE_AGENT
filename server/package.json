@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "live": "node geminiLiveServer.js",
+    "db": "node databaseServer.js",
     "dev": "node --watch server.js",
     "ingest": "node scripts/ingest.js"
   },
@@ -21,12 +23,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "ws": "^8.16.0",
-    "dotenv": "^16.3.1",
-    "@google/generative-ai": "^0.21.0",
     "@deepgram/sdk": "^3.7.0",
+    "@google/genai": "^1.30.0",
+    "@google/generative-ai": "^0.24.1",
     "@pinecone-database/pinecone": "^3.0.0",
-    "axios": "^1.6.8"
+    "axios": "^1.6.8",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.7",
+    "ws": "^8.16.0"
   }
 }

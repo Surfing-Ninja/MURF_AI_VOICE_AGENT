@@ -52,7 +52,7 @@ async function initializePinecone() {
 /**
  * Query Pinecone for relevant context based on user query
  * @param {string} queryText - User's question/query
- * @param {number} topK - Number of results to return (default: 2, optimized for speed)
+ * @param {number} topK - Number of results to return (default: 3)
  * @returns {Promise<string>} - Concatenated relevant context from knowledge base
  */
 export async function queryContext(queryText, topK = 2) {
@@ -65,7 +65,7 @@ export async function queryContext(queryText, topK = 2) {
     // Generate embedding for the query using Gemini
     const queryEmbedding = await generateEmbedding(queryText);
 
-    // Query Pinecone for similar vectors (reduced topK for speed)
+    // Query Pinecone for similar vectors
     const queryResponse = await pineconeIndex.query({
       vector: queryEmbedding,
       topK: topK,
@@ -82,33 +82,34 @@ export async function queryContext(queryText, topK = 2) {
 
     console.log(`[RAG] ✓ Found ${matches.length} relevant context chunks`);
 
-    // Concatenate metadata text from all matches
-    // Lowered threshold from 0.7 to 0.65 for faster, more permissive matching
+    // Log all matches first
+    matches.forEach((match, idx) => {
+      const score = match.score.toFixed(3);
+      const text = match.metadata?.text || '';
+      console.log(`[RAG]   Match ${idx + 1}: Score ${score}, Text: "${text.substring(0, 60)}..."`);
+    });
+
+    // Concatenate metadata text - LOWER threshold for better recall
     const contextPieces = matches
-      .filter(match => match.score > 0.65)
-      .map((match, idx) => {
-        const text = match.metadata?.text || '';
-        const score = match.score.toFixed(3);
-        console.log(`[RAG]   Match ${idx + 1}: Score ${score}, Text: "${text.substring(0, 60)}..."`);
-        return text;
-      })
+      .filter(match => match.score > 0.35) // Lowered from 0.5 to 0.35
+      .map(match => match.metadata?.text || '')
       .filter(text => text.length > 0);
 
     if (contextPieces.length === 0) {
-      console.log('[RAG] No high-confidence matches found (threshold: 0.65)');
+      console.log('[RAG] No relevant matches found (threshold: 0.35)');
       return '';
     }
 
-    // Join context pieces (simplified separator for less token overhead)
-    const fullContext = contextPieces.join('\n\n');
-    
+    // Join context - limit to 300 chars for speed
+    const fullContext = contextPieces.join('\n\n').substring(0, 300);
+
     console.log(`[RAG] ✓ Retrieved ${fullContext.length} characters of context`);
-    
+
     return fullContext;
 
   } catch (error) {
     console.error('[RAG] ❌ Error querying context:', error);
-    
+
     // Return empty string on error (don't break the flow)
     return '';
   }
@@ -172,7 +173,7 @@ export async function getIndexStats() {
     await initializePinecone();
 
     const stats = await pineconeIndex.describeIndexStats();
-    
+
     console.log('[RAG] Index Statistics:', {
       totalVectorCount: stats.totalRecordCount,
       dimension: stats.dimension,
@@ -202,10 +203,10 @@ export async function isReady() {
   }
 }
 
-export default { 
-  queryContext, 
-  upsertVectors, 
-  clearIndex, 
+export default {
+  queryContext,
+  upsertVectors,
+  clearIndex,
   getIndexStats,
-  isReady 
+  isReady
 };
