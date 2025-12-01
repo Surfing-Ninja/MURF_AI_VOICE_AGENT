@@ -1,0 +1,113 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@theme {
+  --color-copper-50: #fbf7f3;
+  --color-copper-100: #f5ebe3;
+  --color-copper-200: #ebd6c4;
+  --color-copper-300: #deb99d;
+  --color-copper-400: #d4a574;
+  --color-copper-500: #c87d4a;
+  --color-copper-600: #bb623b;
+  --color-copper-700: #9b4d32;
+  --color-copper-800: #7f402d;
+  --color-copper-900: #663627;
+  --color-copper-950: #361a12;
+
+  --color-cyan-400: #00d9ff;
+  --color-cyan-500: #00b8d4;
+
+  --color-charcoal-900: #0f0f12;
+  --color-charcoal-800: #18181b;
+  --color-charcoal-700: #27272a;
+
+  --font-sans: 'Outfit', sans-serif;
+  --font-heading: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shine: shine 1s linear infinite;
+  --animate-gradient-x: gradient-x 15s ease infinite;
+  --animate-gradient-xy: gradient-xy 15s ease infinite;
+
+  @keyframes glow {
+    0% {
+      box-shadow: 0 0 5px #d4a574, 0 0 10px #d4a574;
+    }
+
+    100% {
+      box-shadow: 0 0 20px #d4a574, 0 0 30px #d4a574;
+    }
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes shine {
+    from {
+      transform: translateX(-100%);
+    }
+
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes gradient-x {
+
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes gradient-xy {
+
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-charcoal-900 text-white font-sans overflow-x-hidden;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-charcoal-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-copper-900 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-copper-700;
+}
