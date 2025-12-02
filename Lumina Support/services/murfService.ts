@@ -1,6 +1,6 @@
 
 
-const MURF_API_KEY = 'ap2_dc79b9ad-09ea-42a8-a030-e07bded1b1c3';
+const MURF_API_KEY = import.meta.env.VITE_MURF_API_KEY;
 
 export async function generateMurfSpeech(text: string): Promise<ArrayBuffer> {
   if (!text || !text.trim()) {
