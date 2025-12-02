@@ -1,0 +1,259 @@
+You are given a task to integrate an existing React component in the codebase
+
+The codebase should support:
+- shadcn project structure  
+- Tailwind CSS
+- Typescript
+
+If it doesn't, provide instructions on how to setup project via shadcn CLI, install Tailwind or Typescript.
+
+Determine the default path for components and styles. 
+If default path for components is not /components/ui, provide instructions on why it's important to create this folder
+Copy-paste this component to /components/ui folder:
+tsx
+perlin-noise-blob.tsx
+import { OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
+import * as THREE from "three";
+import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
+
+export const Scene = () => {
+	return (
+		<Canvas
+			camera={{ position: [0, 0, 10], fov: 60 }}
+			className="w-full h-full"
+			style={{
+				background: `
+          radial-gradient(circle at 30% 40%, #0b0d14 0%, #07080d 40%, transparent 70%),
+          radial-gradient(circle at 70% 60%, #10121a 0%, #050609 50%, transparent 80%),
+          linear-gradient(180deg, #0a0b0f 0%, #020203 100%)
+        `,
+				backgroundBlendMode: "screen, screen, normal",
+			}}
+		>
+			<ambientLight intensity={0.3} color={"#a0b8ff"} />
+
+			<directionalLight
+				intensity={0.4}
+				position={[3, 2, 5]}
+				color={"#ffe2b8"}
+			/>
+
+			<hemisphereLight intensity={0.35} args={["#a8c0ff", "#2b2b2f"]} />
+
+			<OrbitControls enableDamping={true} enablePan={false} />
+			<DeformedIco />
+		</Canvas>
+	);
+}
+
+function DeformedIco() {
+	const meshRef = useRef<THREE.Mesh>(null);
+	const timeRef = useRef(0);
+
+	const noiseGLSL = `
+  //	Simplex 4D Noise 
+  //	by Ian McEwan, Ashima Arts
+  //
+  vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+  float permute(float x){return floor(mod(((x*34.0)+1.0)*x, 289.0));}
+  vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+  float taylorInvSqrt(float r){return 1.79284291400159 - 0.85373472095314 * r;}
+
+  vec4 grad4(float j, vec4 ip){
+    const vec4 ones = vec4(1.0, 1.0, 1.0, -1.0);
+    vec4 p,s;
+
+    p.xyz = floor( fract (vec3(j) * ip.xyz) * 7.0) * ip.z - 1.0;
+    p.w = 1.5 - dot(abs(p.xyz), ones.xyz);
+    s = vec4(lessThan(p, vec4(0.0)));
+    p.xyz = p.xyz + (s.xyz*2.0 - 1.0) * s.www; 
+
+    return p;
+  }
+
+  float snoise(vec4 v){
+    const vec2  C = vec2( 0.138196601125010504,  // (5 - sqrt(5))/20  G4
+                          0.309016994374947451); // (sqrt(5) - 1)/4   F4
+  // First corner
+    vec4 i  = floor(v + dot(v, C.yyyy) );
+    vec4 x0 = v -   i + dot(i, C.xxxx);
+
+  // Other corners
+  // Rank sorting originally contributed by Bill Licea-Kane, AMD (formerly ATI)
+    vec4 i0;
+
+    vec3 isX = step( x0.yzw, x0.xxx );
+    vec3 isYZ = step( x0.zww, x0.yyz );
+    i0.x = isX.x + isX.y + isX.z;
+    i0.yzw = 1.0 - isX;
+
+    i0.y += isYZ.x + isYZ.y;
+    i0.zw += 1.0 - isYZ.xy;
+
+    i0.z += isYZ.z;
+    i0.w += 1.0 - isYZ.z;
+
+    vec4 i3 = clamp( i0, 0.0, 1.0 );
+    vec4 i2 = clamp( i0-1.0, 0.0, 1.0 );
+    vec4 i1 = clamp( i0-2.0, 0.0, 1.0 );
+
+    vec4 x1 = x0 - i1 + 1.0 * C.xxxx;
+    vec4 x2 = x0 - i2 + 2.0 * C.xxxx;
+    vec4 x3 = x0 - i3 + 3.0 * C.xxxx;
+    vec4 x4 = x0 - 1.0 + 4.0 * C.xxxx;
+
+    i = mod(i, 289.0); 
+    float j0 = permute( permute( permute( permute(i.w) + i.z) + i.y) + i.x);
+    vec4 j1 = permute( permute( permute( permute (
+               i.w + vec4(i1.w, i2.w, i3.w, 1.0 ))
+             + i.z + vec4(i1.z, i2.z, i3.z, 1.0 ))
+             + i.y + vec4(i1.y, i2.y, i3.y, 1.0 ))
+             + i.x + vec4(i1.x, i2.x, i3.x, 1.0 ));
+
+    vec4 ip = vec4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;
+
+    vec4 p0 = grad4(j0,   ip);
+    vec4 p1 = grad4(j1.x, ip);
+    vec4 p2 = grad4(j1.y, ip);
+    vec4 p3 = grad4(j1.z, ip);
+    vec4 p4 = grad4(j1.w, ip);
+
+    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+    p0 *= norm.x;
+    p1 *= norm.y;
+    p2 *= norm.z;
+    p3 *= norm.w;
+    p4 *= taylorInvSqrt(dot(p4,p4));
+
+    vec3 m0 = max(0.6 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);
+    vec2 m1 = max(0.6 - vec2(dot(x3,x3), dot(x4,x4)            ), 0.0);
+    m0 = m0 * m0;
+    m1 = m1 * m1;
+    return 49.0 * ( dot(m0*m0, vec3( dot( p0, x0 ), dot( p1, x1 ), dot( p2, x2 )))
+                 + dot(m1*m1, vec2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;
+  }
+  `;
+
+	const geometry = useMemo(() => {
+		const g = new THREE.IcosahedronGeometry(1, 200);
+		g.deleteAttribute("normal");
+		g.deleteAttribute("uv");
+		const merged = mergeVertices(g);
+		merged.computeVertexNormals();
+		return merged;
+	}, []);
+
+	const material = useMemo(() => {
+		const mat = new THREE.MeshPhongMaterial({
+			color: new THREE.Color("#b0b3ba"),
+			emissive: new THREE.Color("#1a2a40").multiplyScalar(0.15),
+			shininess: 250,
+			specular: new THREE.Color("#d1d4d9"),
+		});
+		return mat;
+	}, []);
+
+	useEffect(() => {
+		if (!material) return;
+
+		material.onBeforeCompile = (shader) => {
+			shader.uniforms.time = { value: 0.0 };
+			material.userData.timeUniform = shader.uniforms.time;
+
+			shader.vertexShader = `
+        uniform float time;
+        ${noiseGLSL}
+        float noise(vec3 p){
+          float n = snoise(vec4(p, time));
+          n = sin(n * 3.1415926 * 8.0);
+          n = n * 0.5 + 0.5;
+          n *= n;
+          return n;
+        }
+        vec3 getPos(vec3 p){
+          return p * (4.0 + noise(p * 0.875) * 0.25);
+        }
+        ${shader.vertexShader}
+      `
+				.replace(
+					"#include <beginnormal_vertex>",
+					`#include <beginnormal_vertex>
+            vec3 p0 = getPos(position);
+
+            float theta = .1;
+            vec3 vecTangent = normalize(cross(p0, vec3(1.0, 0.0, 0.0)) + cross(p0, vec3(0.0, 1.0, 0.0)));
+            vec3 vecBitangent = normalize(cross(vecTangent, p0));
+            vec3 ptTangentSample = getPos(normalize(p0 + theta * normalize(vecTangent)));
+            vec3 ptBitangentSample = getPos(normalize(p0 + theta * normalize(vecBitangent)));
+
+            objectNormal = normalize(cross(ptBitangentSample - p0, ptTangentSample - p0));
+          `,
+				)
+				.replace(
+					"#include <begin_vertex>",
+					`#include <begin_vertex>
+            transformed = p0;
+          `,
+				);
+		};
+
+		material.needsUpdate = true;
+	}, [material, noiseGLSL]);
+
+	useFrame(({ clock }) => {
+		const t = clock.getElapsedTime();
+
+		timeRef.current = t * 0.1;
+		if (material?.userData?.timeUniform) {
+			material.userData.timeUniform.value = timeRef.current;
+		}
+
+		if (meshRef.current) {
+			meshRef.current.position.y = Math.sin(t * 0.5) * 0.2;
+
+			meshRef.current.rotation.x += 0.001;
+			meshRef.current.rotation.y += 0.0012;
+			meshRef.current.rotation.z += 0.0008;
+		}
+	});
+
+	return <mesh ref={meshRef} geometry={geometry} material={material} />;
+}
+
+
+demo.tsx
+import { Scene } from "@/components/ui/perlin-noise-blob";
+
+export default function DemoOne() {
+  return (
+    <div className="h-svh w-screen ">
+      <Scene/>
+    </div>
+  );
+}
+
+
+
+Install NPM dependencies:
+bash
+three, @react-three/drei, @react-three/fiber
+
+
+Implementation Guidelines
+ 1. Analyze the component structure and identify all required dependencies
+ 2. Review the component's argumens and state
+ 3. Identify any required context providers or hooks and install them
+ 4. Questions to Ask
+ - What data/props will be passed to this component?
+ - Are there any specific state management requirements?
+ - Are there any required assets (images, icons, etc.)?
+ - What is the expected responsive behavior?
+ - What is the best place to use this component in the app?
+
+Steps to integrate
+ 0. Copy paste all the code above in the correct directories
+ 1. Install external dependencies
+ 2. Fill image assets with Unsplash stock images you know exist
+ 3. Use lucide-react icons for svgs or logos if component requires them

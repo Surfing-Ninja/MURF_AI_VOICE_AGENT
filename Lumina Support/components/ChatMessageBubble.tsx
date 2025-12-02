@@ -12,7 +12,7 @@ export const ChatMessageBubble: React.FC<Props> = ({ message }) => {
   if (isSystem) {
     return (
       <div className="flex justify-center my-4">
-        <span className="text-xs text-slate-500 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700">
+        <span className="text-xs text-zinc-400 bg-zinc-900/50 px-3 py-1 rounded-full border border-zinc-700">
           {message.text}
         </span>
       </div>
@@ -24,8 +24,8 @@ export const ChatMessageBubble: React.FC<Props> = ({ message }) => {
       <div
         className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-sm ${
           isUser
-            ? 'bg-blue-600 text-white rounded-br-none'
-            : 'bg-slate-700 text-slate-100 rounded-bl-none border border-slate-600'
+            ? 'bg-amber-500 text-white rounded-br-none shadow-amber-500/20'
+            : 'bg-zinc-800 text-zinc-100 rounded-bl-none border border-zinc-700'
         }`}
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap">
