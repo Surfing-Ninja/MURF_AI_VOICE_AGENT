@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { ChatMessage, ConnectionState } from '../../types';
 import { createBlob } from '../../services/audioUtils';
 import { generateMurfSpeech } from '../../services/murfService';
-import { Header } from '../../components/Header';
-import { ChatMessageBubble } from '../../components/ChatMessageBubble';
+import { VoicePoweredOrb } from '../components/ui/VoicePoweredOrb';
+import { LightRays } from '../components/ui/LightRays';
+import { useNavigate } from 'react-router-dom';
 
 // --- Configuration ---
 const SYSTEM_INSTRUCTION = `You are a friendly and knowledgeable customer support agent for "Lumina" (formerly DesiMart), a premium online lifestyle store. 
@@ -266,6 +266,7 @@ const AgentInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [isBotSpeaking, setIsBotSpeaking] = useState(false); // Track when bot is playing audio
 
   // --- Refs for Audio & API ---
   const connectionStateRef = useRef<ConnectionState>(ConnectionState.DISCONNECTED);
@@ -391,11 +392,20 @@ const AgentInterface: React.FC = () => {
 
       // Use the playback context (system default rate)
       const ctx = playbackAudioContextRef.current;
-      if (!ctx) return;
+      if (!ctx) {
+        console.warn('[PlayPCM] No playback context available');
+        return;
+      }
 
-      // Ensure context is running
+      // Ensure context is running - this is CRITICAL for reconnection
       if (ctx.state === 'suspended') {
+        console.log('[PlayPCM] Resuming suspended playback context...');
         await ctx.resume();
+      }
+
+      if (ctx.state === 'closed') {
+        console.warn('[PlayPCM] Playback context is closed, cannot play audio');
+        return;
       }
 
       const buffer = ctx.createBuffer(1, float32Data.length, 24000); // Gemini is 24kHz
@@ -414,7 +424,7 @@ const AgentInterface: React.FC = () => {
       nextPlayTimeRef.current = startTime + buffer.duration;
 
     } catch (e) {
-      console.error("Error playing PCM chunk", e);
+      console.error("[PlayPCM] Error playing PCM chunk:", e);
     }
   };
 
@@ -441,17 +451,28 @@ const AgentInterface: React.FC = () => {
       updateConnectionState(ConnectionState.CONNECTING);
       setError(null);
 
+      // Reset audio scheduling state
+      nextPlayTimeRef.current = 0;
+      ttsBufferRef.current = '';
+      currentInputTranscriptionRef.current = '';
+      currentOutputTranscriptionRef.current = '';
+
       // 1. Initialize Input Audio Context (16kHz for Mic)
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const inputCtx = new AudioContextClass({ sampleRate: 16000 });
       inputAudioContextRef.current = inputCtx;
 
       // 1b. Initialize Playback Audio Context (System Default Rate)
+      // IMPORTANT: Create fresh context and ensure it's running
       const playbackCtx = new AudioContextClass();
+      playbackAudioContextRef.current = playbackCtx;
+      
+      // Resume playback context immediately and on user interaction
       if (playbackCtx.state === 'suspended') {
+        console.log('[Connect] Resuming playback context...');
         await playbackCtx.resume();
       }
-      playbackAudioContextRef.current = playbackCtx;
+      console.log('[Connect] Playback context state:', playbackCtx.state);
 
       // 2. Load AudioWorklet (Low-latency processing)
       const blob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
@@ -515,6 +536,7 @@ const AgentInterface: React.FC = () => {
               ttsBufferRef.current = '';
               currentOutputTranscriptionRef.current = '';
               setIsSynthesizing(false);
+              setIsBotSpeaking(false); // Bot stopped speaking due to interruption
 
               // 4. Finalize pending UI message
               setMessages((prev) => {
@@ -771,6 +793,7 @@ const AgentInterface: React.FC = () => {
                 if (part.inlineData && part.inlineData.mimeType?.startsWith('audio/pcm')) {
                   const pcmData = part.inlineData.data;
                   if (pcmData) {
+                    setIsBotSpeaking(true); // Bot is speaking
                     playPCMChunk(pcmData);
                   }
                 }
@@ -823,6 +846,8 @@ const AgentInterface: React.FC = () => {
 
             // Handle Turn Complete
             if (message.serverContent?.turnComplete) {
+              setIsBotSpeaking(false); // Bot finished speaking
+              
               // Finalize user message
               if (currentInputTranscriptionRef.current) {
                 addMessage('user', currentInputTranscriptionRef.current, true);
@@ -880,40 +905,84 @@ const AgentInterface: React.FC = () => {
   };
 
   const disconnect = () => {
+    console.log('[Disconnect] Starting cleanup...');
+    
+    // 1. Close session first (stops any incoming audio)
     if (sessionPromiseRef.current) {
-      sessionPromiseRef.current.then(session => session.close());
+      sessionPromiseRef.current.then(session => {
+        try {
+          session.close();
+        } catch (e) {
+          console.warn('[Disconnect] Session close error:', e);
+        }
+      }).catch(e => console.warn('[Disconnect] Session promise error:', e));
       sessionPromiseRef.current = null;
     }
 
-    if (inputAudioContextRef.current) {
-      inputAudioContextRef.current.close();
-      inputAudioContextRef.current = null;
-    }
-
-    if (playbackAudioContextRef.current) {
-      playbackAudioContextRef.current.close();
-      playbackAudioContextRef.current = null;
-    }
-
+    // 2. Stop and disconnect input worklet
     if (inputWorkletNodeRef.current) {
-      inputWorkletNodeRef.current.disconnect();
+      try {
+        inputWorkletNodeRef.current.disconnect();
+      } catch (e) {
+        console.warn('[Disconnect] Worklet disconnect error:', e);
+      }
       inputWorkletNodeRef.current = null;
     }
 
+    // 3. Stop media stream tracks
     if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+      });
       mediaStreamRef.current = null;
     }
 
-    // Stop Playback
+    // 4. Close input audio context
+    if (inputAudioContextRef.current) {
+      try {
+        if (inputAudioContextRef.current.state !== 'closed') {
+          inputAudioContextRef.current.close();
+        }
+      } catch (e) {
+        console.warn('[Disconnect] Input context close error:', e);
+      }
+      inputAudioContextRef.current = null;
+    }
+
+    // 5. Close playback audio context
+    if (playbackAudioContextRef.current) {
+      try {
+        if (playbackAudioContextRef.current.state !== 'closed') {
+          playbackAudioContextRef.current.close();
+        }
+      } catch (e) {
+        console.warn('[Disconnect] Playback context close error:', e);
+      }
+      playbackAudioContextRef.current = null;
+    }
+
+    // 6. Stop any current HTML5 audio playback
     if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
+      try {
+        currentAudioRef.current.pause();
+        currentAudioRef.current.src = '';
+      } catch (e) {
+        console.warn('[Disconnect] Audio element cleanup error:', e);
+      }
       currentAudioRef.current = null;
     }
+
+    // 7. Clear audio queue and buffers
     audioQueueRef.current = [];
     isPlayingRef.current = false;
     ttsBufferRef.current = '';
+    nextPlayTimeRef.current = 0;
 
+    // 8. Clear transcription buffers
+    currentInputTranscriptionRef.current = '';
+    currentOutputTranscriptionRef.current = '';
+
+    console.log('[Disconnect] Cleanup complete');
     updateConnectionState(ConnectionState.DISCONNECTED);
     setIsSynthesizing(false);
   };
@@ -926,92 +995,239 @@ const AgentInterface: React.FC = () => {
     }
   };
 
+  const navigate = useNavigate();
+
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-200 font-sans">
-      <Header isConnected={connectionState === ConnectionState.CONNECTED} onTestAudio={handleTestAudio} />
+    <div className="flex flex-col h-screen bg-charcoal-900 text-white font-sans overflow-hidden">
+      {/* Light Rays Background Effect */}
+      <div className="fixed inset-0 pointer-events-none opacity-50">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#00d9ff"
+          raysSpeed={0.6}
+          lightSpread={0.2}
+          rayLength={0.9}
+          fadeDistance={0.6}
+          saturation={1.0}
+          followMouse={true}
+          mouseInfluence={0.25}
+          noiseAmount={0.03}
+          distortion={0.01}
+          pulsating={false}
+        />
+      </div>
 
-      {/* Main Chat Area */}
-      <main className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
-            <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center border border-slate-800">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-slate-600">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-              </svg>
-            </div>
-            <p className="text-center max-w-xs">
-              Tap the microphone to start a conversation with the Lumina Support Agent.
-            </p>
-          </div>
-        ) : (
-          messages.map((msg) => (
-            <ChatMessageBubble key={msg.id} message={msg} />
-          ))
-        )}
-
-        {/* Synthesizing Indicator */}
-        {isSynthesizing && (
-          <div className="flex justify-start w-full mb-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-full border border-slate-700">
-              <div className="flex space-x-1">
-                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
-              <span className="text-xs text-indigo-300">Speaking...</span>
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </main>
-
-      {/* Error Banner - Fixed Position */}
-      {error && (
-        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 w-3/4 max-w-md bg-red-900/90 border border-red-700 text-red-100 px-4 py-3 rounded-lg shadow-lg text-sm text-center z-50">
-          <p className="font-semibold mb-1">Error</p>
-          <p>{error}</p>
-        </div>
-      )}
-
-      {/* Control Bar */}
-      <footer className="p-6 bg-slate-900 border-t border-slate-800 flex items-center justify-center relative z-20">
-        <button
-          onClick={handleToggleConnection}
-          className={`
-            relative group flex items-center justify-center w-16 h-16 rounded-full transition-all duration-300 shadow-xl
-            ${connectionState === ConnectionState.CONNECTED
-              ? 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
-              : connectionState === ConnectionState.CONNECTING
-                ? 'bg-amber-500 cursor-wait'
-                : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/30'
-            }
-          `}
+      {/* Top Navigation Bar */}
+      <header className="relative z-20 flex items-center justify-between px-6 py-3 border-b border-white/5 backdrop-blur-xl bg-charcoal-900/50">
+        <button 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
-          {connectionState === ConnectionState.CONNECTING ? (
-            <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          ) : connectionState === ConnectionState.CONNECTED ? (
-            // Hangup Icon
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
-              <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            // Mic Icon
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-copper-400 to-copper-600 flex items-center justify-center shadow-lg shadow-copper-500/20">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
               <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
               <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
             </svg>
-          )}
-
-          {/* Ring Animation when active */}
-          {connectionState === ConnectionState.CONNECTED && (
-            <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-20 animate-ping"></span>
-          )}
+          </div>
+          <div>
+            <h1 className="font-semibold text-base tracking-tight text-white font-heading">Lumina Voice</h1>
+            <p className="text-[10px] text-copper-400/70">AI Support Agent</p>
+          </div>
         </button>
-      </footer>
+
+        <div className="flex items-center gap-4">
+          {/* Connection Status */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-charcoal-800/50 border border-charcoal-700/50">
+            <span className={`w-2 h-2 rounded-full ${
+              connectionState === ConnectionState.CONNECTED 
+                ? 'bg-copper-400 shadow-lg shadow-copper-400/50 animate-pulse' 
+                : connectionState === ConnectionState.CONNECTING
+                  ? 'bg-copper-500 animate-pulse'
+                  : 'bg-charcoal-700'
+            }`} />
+            <span className="text-xs font-medium text-copper-300/70 uppercase tracking-wider">
+              {connectionState === ConnectionState.CONNECTED ? 'Live' : connectionState === ConnectionState.CONNECTING ? 'Connecting' : 'Offline'}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="relative z-10 flex-1 flex flex-col overflow-hidden">
+        {/* Top Section - Voice Orb with Context */}
+        <div className="flex-shrink-0 h-[55%] flex flex-col items-center justify-center relative px-8 pt-4">
+          {/* Decorative rings around orb */}
+          <div className="absolute w-[340px] h-[340px] rounded-full border border-copper-500/10 animate-pulse-slow" />
+          <div className="absolute w-[380px] h-[380px] rounded-full border border-copper-500/5" />
+          
+          {/* Glow Effects Behind Orb */}
+          <div className={`absolute w-72 h-72 rounded-full transition-all duration-700 ${
+            connectionState === ConnectionState.CONNECTED 
+              ? 'bg-copper-500/25 blur-3xl scale-110' 
+              : 'bg-copper-500/10 blur-2xl scale-100'
+          }`} />
+
+          {/* Voice Powered Orb - Clickable with mic icon */}
+          <button 
+            onClick={handleToggleConnection}
+            className="w-80 h-80 relative cursor-pointer group"
+          >
+            <VoicePoweredOrb 
+              enableVoiceControl={connectionState === ConnectionState.CONNECTED}
+              voiceSensitivity={2.0}
+              maxRotationSpeed={1.5}
+              maxHoverIntensity={0.9}
+              className="rounded-full overflow-hidden"
+            />
+            
+            {/* Mic Icon Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className={`transition-all duration-500 ${
+                connectionState === ConnectionState.CONNECTED 
+                  ? 'opacity-30 scale-90' 
+                  : connectionState === ConnectionState.CONNECTING
+                    ? 'opacity-50 scale-95 animate-pulse'
+                    : 'opacity-60 group-hover:opacity-80 group-hover:scale-110'
+              }`}>
+                {connectionState === ConnectionState.CONNECTING ? (
+                  <svg className="animate-spin w-16 h-16 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : connectionState === ConnectionState.CONNECTED ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-14 h-14 text-white drop-shadow-lg">
+                    <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+                    <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16 text-white drop-shadow-2xl">
+                    <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+                    <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+                  </svg>
+                )}
+              </div>
+            </div>
+          </button>
+
+          {/* Status Text - Below the orb */}
+          <div className="mt-4 text-center">
+            <p className={`text-base font-medium transition-colors font-heading ${
+              connectionState === ConnectionState.CONNECTED 
+                ? isBotSpeaking ? 'text-cyan-400' : 'text-copper-400/80'
+                : 'text-copper-500/50'
+            }`}>
+              {connectionState === ConnectionState.CONNECTED 
+                ? isBotSpeaking ? 'Speaking...' : 'Listening...'
+                : connectionState === ConnectionState.CONNECTING 
+                  ? 'Connecting...' 
+                  : 'Ready to assist'}
+            </p>
+            <p className="text-[11px] text-copper-500/60 mt-1">
+              {connectionState === ConnectionState.CONNECTED 
+                ? 'Speak naturally, I\'m here to help'
+                : 'Click the orb to start'}
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom Section - Chat Window */}
+        <div className="flex-1 flex flex-col overflow-hidden mx-6 mb-4 rounded-2xl bg-charcoal-800/20 backdrop-blur-sm">
+          {/* Chat Header */}
+          <div className="px-4 py-3 flex items-center justify-between border-b border-charcoal-700/20">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-copper-500/10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 text-copper-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                </svg>
+              </div>
+              <span className="text-xs font-medium text-copper-300/80">Conversation Transcript</span>
+              {messages.length > 0 && (
+                <span className="text-[10px] text-charcoal-700 bg-charcoal-800 px-1.5 py-0.5 rounded-full">{messages.length}</span>
+              )}
+            </div>
+            {messages.length > 0 && (
+              <button 
+                onClick={() => setMessages([])}
+                className="text-[10px] text-copper-500/50 hover:text-copper-400 transition-colors px-2 py-1 rounded hover:bg-charcoal-800/50"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 scrollbar-hide">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-charcoal-700 space-y-3">
+                <div className="w-12 h-12 rounded-xl bg-charcoal-800/50 flex items-center justify-center border border-charcoal-700/30">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-6 h-6 text-copper-500/30">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-copper-500/40">No messages yet</p>
+                  <p className="text-[10px] text-charcoal-700 mt-1">Start a conversation to see the transcript</p>
+                </div>
+              </div>
+            ) : (
+              messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                      msg.role === 'user'
+                        ? 'bg-gradient-to-r from-copper-500 to-copper-600 text-white rounded-br-sm'
+                        : 'bg-cyan-500/60 text-white rounded-bl-sm'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className={`text-[9px] uppercase tracking-wider font-semibold ${
+                        msg.role === 'user' ? 'text-copper-200' : 'text-cyan-100'
+                      }`}>
+                        {msg.role === 'user' ? 'You' : 'Lumina'}
+                      </span>
+                      {!msg.isFinal && (
+                        <span className="flex gap-0.5">
+                          <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                          <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                          <span className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm leading-relaxed">{msg.text}</p>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+      </main>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-80 bg-red-900/90 border border-red-700/50 text-red-100 px-4 py-3 rounded-xl shadow-lg text-sm z-50 backdrop-blur-sm">
+          <div className="flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 flex-shrink-0 mt-0.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <div>
+              <p className="font-medium text-xs">Connection Error</p>
+              <p className="text-red-200 text-[10px] mt-0.5">{error}</p>
+            </div>
+            <button 
+              onClick={() => setError(null)}
+              className="text-red-300 hover:text-white transition-colors ml-auto"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
