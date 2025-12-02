@@ -92,7 +92,7 @@ const LandingPage: React.FC = () => {
                     <BlurFade inView>
                         <div className="text-center mb-20">
                             <h2 className="text-3xl md:text-5xl font-heading font-bold mb-4">Beyond Traditional AI</h2>
-                            <p className="text-slate-400 max-w-2xl mx-auto font-light">Powered by Gemini 2.0 Flash, Lumina understands context, emotion, and intent better than ever before.</p>
+                            <p className="text-slate-400 max-w-2xl mx-auto font-light">Powered by Gemini 2.0 Flash, क्रेता-बन्धु understands context, emotion, and intent better than ever before.</p>
                         </div>
                     </BlurFade>
 
@@ -152,7 +152,7 @@ const LandingPage: React.FC = () => {
                         <HolographicCard className="text-center py-20 px-6 md:px-20">
                             <h2 className="text-4xl md:text-6xl font-heading font-bold mb-8">Ready to transform your support?</h2>
                             <p className="text-xl text-slate-300 mb-10 max-w-2xl mx-auto font-light">
-                                Join thousands of companies using Lumina to deliver exceptional customer experiences at scale.
+                                Join thousands of companies using क्रेता-बन्धु to deliver exceptional customer experiences at scale.
                             </p>
                             <button
                                 onClick={() => {
@@ -175,10 +175,10 @@ const LandingPage: React.FC = () => {
                         <div className="w-6 h-6 rounded-full bg-copper-500 flex items-center justify-center">
                             <Activity className="w-3 h-3 text-white" />
                         </div>
-                        <span className="font-heading font-bold text-slate-300">Lumina Support</span>
+                        <span className="font-heading font-bold text-slate-300">क्रेता-बन्धु</span>
                     </div>
                     <div className="text-slate-500 text-sm font-mono">
-                        © 2024 Lumina AI. All rights reserved.
+                        © 2024 क्रेता-बन्धु AI. All rights reserved.
                     </div>
                     <div className="flex gap-6 text-slate-400 text-sm font-medium">
                         <a href="#" className="hover:text-copper-400 transition-colors">Twitter</a>
