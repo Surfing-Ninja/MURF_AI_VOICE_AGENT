@@ -6,6 +6,7 @@ import { generateMurfSpeech } from '../../services/murfService';
 import { VoicePoweredOrb } from '../components/ui/VoicePoweredOrb';
 import { LightRays } from '../components/ui/LightRays';
 import { ProductGrid, Product } from '../components/ui/ProductCard';
+import PopUpCart, { CartItem } from '../components/ui/PopUpCart';
 import { useNavigate } from 'react-router-dom';
 
 // --- Configuration ---
@@ -313,6 +314,8 @@ const AgentInterface: React.FC = () => {
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [isBotSpeaking, setIsBotSpeaking] = useState(false); // Track when bot is playing audio
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]); // Products to display
+  const [cartItems, setCartItems] = useState<CartItem[]>([]); // Cart items
+  const [isCartOpen, setIsCartOpen] = useState(false); // Cart visibility
 
   // --- Refs for Audio & API ---
   const connectionStateRef = useRef<ConnectionState>(ConnectionState.DISCONNECTED);
@@ -350,6 +353,55 @@ const AgentInterface: React.FC = () => {
     setIsBotSpeaking(speaking);
     isBotSpeakingRef.current = speaking;
   };
+
+  // --- Cart Functions ---
+  const handleAddToCart = useCallback((product: Product, quantity: number) => {
+    setCartItems(prevItems => {
+      const existingIndex = prevItems.findIndex(item => item.id === product.id);
+      
+      if (existingIndex !== -1) {
+        // Update existing item quantity
+        const newItems = [...prevItems];
+        newItems[existingIndex] = {
+          ...newItems[existingIndex],
+          cartQuantity: newItems[existingIndex].cartQuantity + quantity
+        };
+        return newItems;
+      } else {
+        // Add new item
+        return [...prevItems, { ...product, cartQuantity: quantity }];
+      }
+    });
+  }, []);
+
+  const handleRemoveFromCart = useCallback((productId: number) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+  }, []);
+
+  const handleUpdateCartQuantity = useCallback((productId: number, quantity: number) => {
+    setCartItems(prevItems => {
+      if (quantity <= 0) {
+        return prevItems.filter(item => item.id !== productId);
+      }
+      return prevItems.map(item => 
+        item.id === productId ? { ...item, cartQuantity: quantity } : item
+      );
+    });
+  }, []);
+
+  const handleToggleCart = useCallback(() => {
+    // Only allow cart toggle when catalogue is not open
+    if (displayedProducts.length === 0) {
+      setIsCartOpen(prev => !prev);
+    }
+  }, [displayedProducts.length]);
+
+  // Close cart when catalogue opens
+  useEffect(() => {
+    if (displayedProducts.length > 0) {
+      setIsCartOpen(false);
+    }
+  }, [displayedProducts]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -1253,6 +1305,18 @@ const AgentInterface: React.FC = () => {
         </div>
       </header>
 
+      {/* Cart - Below Navbar, in corner */}
+      <div className="absolute top-[60px] right-4 z-30">
+        <PopUpCart
+          items={cartItems}
+          isOpen={isCartOpen}
+          onToggle={handleToggleCart}
+          onRemoveItem={handleRemoveFromCart}
+          onUpdateQuantity={handleUpdateCartQuantity}
+          disabled={displayedProducts.length > 0}
+        />
+      </div>
+
       {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col overflow-hidden">
         {/* Top Section - Voice Orb with Context */}
@@ -1354,6 +1418,7 @@ const AgentInterface: React.FC = () => {
             <ProductGrid 
               products={displayedProducts} 
               onClose={() => setDisplayedProducts([])}
+              onAddToCart={handleAddToCart}
             />
           </div>
         )}

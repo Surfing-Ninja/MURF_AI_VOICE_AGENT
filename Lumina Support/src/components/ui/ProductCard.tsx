@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 export interface Product {
   id: number;
@@ -17,9 +17,95 @@ export interface Product {
 interface ProductCardProps {
   product: Product;
   onClose?: () => void;
+  onAddToCart?: (product: Product, quantity: number) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose }) => {
+// Inline ClickSpark for Add to Cart button
+interface Spark {
+  x: number;
+  y: number;
+  angle: number;
+  startTime: number;
+}
+
+const useClickSpark = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
+  const sparksRef = useRef<Spark[]>([]);
+  
+  const easeOut = (t: number) => t * (2 - t);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationId: number;
+    const sparkColor = '#00d9ff';
+    const sparkSize = 12;
+    const sparkRadius = 40;
+    const duration = 500;
+
+    const draw = (timestamp: number) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      sparksRef.current = sparksRef.current.filter((spark) => {
+        const elapsed = timestamp - spark.startTime;
+        if (elapsed >= duration) return false;
+
+        const progress = elapsed / duration;
+        const eased = easeOut(progress);
+
+        const distance = eased * sparkRadius;
+        const lineLength = sparkSize * (1 - eased);
+        const opacity = 1 - eased;
+
+        const x1 = spark.x + distance * Math.cos(spark.angle);
+        const y1 = spark.y + distance * Math.sin(spark.angle);
+        const x2 = spark.x + (distance + lineLength) * Math.cos(spark.angle);
+        const y2 = spark.y + (distance + lineLength) * Math.sin(spark.angle);
+
+        ctx.strokeStyle = sparkColor;
+        ctx.globalAlpha = opacity;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        return true;
+      });
+
+      ctx.globalAlpha = 1;
+      animationId = requestAnimationFrame(draw);
+    };
+
+    animationId = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(animationId);
+  }, [canvasRef]);
+
+  const triggerSpark = useCallback((x: number, y: number) => {
+    const now = performance.now();
+    const sparkCount = 10;
+    const newSparks: Spark[] = Array.from({ length: sparkCount }, (_, i) => ({
+      x,
+      y,
+      angle: (2 * Math.PI * i) / sparkCount,
+      startTime: now
+    }));
+    sparksRef.current.push(...newSparks);
+  }, []);
+
+  return { triggerSpark };
+};
+
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAddToCart }) => {
+  const [quantity, setQuantity] = useState(1);
+  const [isAdding, setIsAdding] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const { triggerSpark } = useClickSpark(canvasRef);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -27,6 +113,39 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose }) =>
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price);
+  };
+
+  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!onAddToCart || product.stock === 0) return;
+    
+    // Trigger spark animation
+    const rect = buttonRef.current?.getBoundingClientRect();
+    const canvasRect = canvasRef.current?.getBoundingClientRect();
+    if (rect && canvasRect) {
+      const x = rect.left + rect.width / 2 - canvasRect.left;
+      const y = rect.top + rect.height / 2 - canvasRect.top;
+      triggerSpark(x, y);
+    }
+
+    setIsAdding(true);
+    onAddToCart(product, quantity);
+    
+    setTimeout(() => {
+      setIsAdding(false);
+      setQuantity(1);
+    }, 600);
+  };
+
+  const incrementQuantity = () => {
+    if (quantity < product.stock) {
+      setQuantity(q => q + 1);
+    }
+  };
+
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(q => q - 1);
+    }
   };
 
   return (
@@ -123,34 +242,113 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose }) =>
           </div>
 
           {/* Description */}
-          <p className="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-2">
+          <p className="text-gray-400 text-sm leading-relaxed mb-4 line-clamp-2">
             {product.description || 'Premium quality product with excellent features and great value.'}
           </p>
 
-          {/* Quantity Info */}
-          <div className="flex items-center gap-3 mb-6">
-            <span className="text-sm font-medium text-gray-500">Quantity Available</span>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-charcoal-700/50 border border-charcoal-600/50 text-sm font-semibold text-cyan-300">
-                {product.stock} units
-              </span>
+          {/* Price Section */}
+          <div className="flex items-baseline gap-2 mb-4">
+            <span className="text-2xl font-bold text-cyan-400 tracking-tight">
+              {formatPrice(product.price)}
+            </span>
+            <div className="flex items-center gap-1 text-green-400">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+              </svg>
+              <span className="text-[10px] font-medium">Free Delivery</span>
             </div>
           </div>
 
-          {/* Footer: Price & Free Shipping */}
-          <div className="flex flex-col items-start pt-4 border-t border-charcoal-700/50">
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-cyan-400 tracking-tight">
-                {formatPrice(product.price)}
-              </span>
+          {/* Quantity Selector & Add to Cart */}
+          {onAddToCart && (
+            <div className="relative pt-4 border-t border-charcoal-700/50">
+              {/* Spark Animation Canvas */}
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 pointer-events-none z-50"
+                width={340}
+                height={120}
+              />
+              
+              <div className="flex items-center gap-3">
+                {/* Quantity Selector */}
+                <div className="flex items-center bg-charcoal-700/50 rounded-xl border border-charcoal-600/50 overflow-hidden">
+                  <button
+                    onClick={decrementQuantity}
+                    disabled={quantity <= 1}
+                    className="w-9 h-9 flex items-center justify-center text-cyan-400 hover:bg-charcoal-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
+                    </svg>
+                  </button>
+                  <span className="w-10 text-center text-sm font-bold text-white">{quantity}</span>
+                  <button
+                    onClick={incrementQuantity}
+                    disabled={quantity >= product.stock}
+                    className="w-9 h-9 flex items-center justify-center text-cyan-400 hover:bg-charcoal-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Add to Cart Button */}
+                <button
+                  ref={buttonRef}
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 0 || isAdding}
+                  className={`
+                    flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm
+                    flex items-center justify-center gap-2
+                    transition-all duration-300 transform
+                    ${product.stock === 0 
+                      ? 'bg-charcoal-700/50 text-charcoal-500 cursor-not-allowed' 
+                      : isAdding
+                        ? 'bg-green-500 text-white scale-95'
+                        : 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white hover:from-cyan-400 hover:to-cyan-500 hover:shadow-lg hover:shadow-cyan-500/30 active:scale-95'
+                    }
+                  `}
+                >
+                  {isAdding ? (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      Added!
+                    </>
+                  ) : product.stock === 0 ? (
+                    'Out of Stock'
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                      </svg>
+                      Add to Cart
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {/* Stock indicator */}
+              <p className="text-[10px] text-charcoal-500 mt-2 text-center">
+                {product.stock} units available
+              </p>
             </div>
-            <div className="flex items-center gap-2 mt-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-400">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-              </svg>
-              <span className="text-xs text-green-400 font-medium">Free Shipping on orders above ₹499</span>
+          )}
+
+          {/* Footer: Price only (when no cart functionality) */}
+          {!onAddToCart && (
+            <div className="flex flex-col items-start pt-4 border-t border-charcoal-700/50">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+                </svg>
+                <span className="text-xs text-green-400 font-medium">Free Shipping on orders above ₹499</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -161,9 +359,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose }) =>
 interface ProductGridProps {
   products: Product[];
   onClose?: () => void;
+  onAddToCart?: (product: Product, quantity: number) => void;
 }
 
-export const ProductGrid: React.FC<ProductGridProps> = ({ products, onClose }) => {
+export const ProductGrid: React.FC<ProductGridProps> = ({ products, onClose, onAddToCart }) => {
   if (!products || products.length === 0) return null;
 
   return (
@@ -183,7 +382,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onClose }) =
       <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
         {products.map((product) => (
           <div key={product.id} className="flex-shrink-0">
-            <ProductCard product={product} />
+            <ProductCard product={product} onAddToCart={onAddToCart} />
           </div>
         ))}
       </div>
