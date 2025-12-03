@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, Zap, Shield, ArrowRight, Activity, Home, User, Briefcase, FileText } from 'lucide-react';
 import { DottedSurface } from '../components/DottedSurface';
@@ -6,9 +6,11 @@ import HolographicCard from '../components/HolographicCard';
 import CustomCursor from '../components/CustomCursor';
 import { TubelightNavbar } from '../components/TubelightNavbar';
 import { BlurFade } from '../components/BlurFade';
+import HyperspaceLoader from '../components/ui/HyperspaceLoader';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(true);
 
     const navItems = [
         { name: 'Home', url: '#', icon: Home },
@@ -16,6 +18,16 @@ const LandingPage: React.FC = () => {
         { name: 'Demo', url: '#demo', icon: User },
         { name: 'Docs', url: '#', icon: FileText }
     ];
+
+    // Show loading screen first
+    if (isLoading) {
+        return (
+            <HyperspaceLoader 
+                onLoadComplete={() => setIsLoading(false)} 
+                minDuration={3500}
+            />
+        );
+    }
 
     return (
         <div className="relative min-h-screen text-white overflow-hidden selection:bg-copper-400/30 selection:text-copper-100 font-sans">
