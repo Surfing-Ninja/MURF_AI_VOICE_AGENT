@@ -158,7 +158,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
       <div className="absolute bottom-[-5%] right-[20%] w-48 h-48 rounded-full bg-[#00d9ff15] opacity-50 blur-xl" />
 
       {/* Main Card Component */}
-      <div className="relative z-10 w-[340px] bg-gradient-to-b from-charcoal-800/95 to-charcoal-900/95 backdrop-blur-xl rounded-[40px] shadow-[0_30px_60px_-15px_rgba(0,217,255,0.3)] overflow-hidden transition-transform hover:scale-[1.02] duration-300 ease-out border border-cyan-500/20">
+      <div className="relative z-10 w-[280px] bg-gradient-to-b from-charcoal-800/95 to-charcoal-900/95 backdrop-blur-xl rounded-[32px] shadow-[0_20px_40px_-10px_rgba(0,217,255,0.3)] overflow-hidden transition-transform hover:scale-[1.02] duration-300 ease-out border border-cyan-500/20">
         
         {/* Close Button */}
         {onClose && (
@@ -173,7 +173,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
         )}
 
         {/* Card Header / Image Area */}
-        <div className="h-72 bg-gradient-to-br from-[#00d9ff] to-[#00b8d9] relative flex items-center justify-center overflow-visible">
+        <div className="h-52 bg-gradient-to-br from-[#00d9ff] to-[#00b8d9] relative flex items-center justify-center overflow-visible">
           {/* Subtle gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-tr from-[#00d9ff] to-[#4de8ff]" />
           
@@ -186,7 +186,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
             <img 
               src={product.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop'} 
               alt={product.name}
-              className="w-48 h-48 object-cover rounded-2xl drop-shadow-2xl hover:rotate-2 transition-transform duration-500 z-20"
+              className="w-36 h-36 object-cover rounded-xl drop-shadow-2xl hover:rotate-2 transition-transform duration-500 z-20"
               style={{
                 filter: "contrast(1.1) saturate(1.1)",
               }}
@@ -209,7 +209,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
         </div>
 
         {/* Card Body */}
-        <div className="px-8 pt-6 pb-8">
+        <div className="px-5 pt-4 pb-5">
           
           {/* Brand */}
           {product.brand && (
@@ -219,7 +219,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
           )}
 
           {/* Title */}
-          <h2 className="text-xl font-bold text-white mb-2 leading-tight">
+          <h2 className="text-base font-bold text-white mb-2 leading-tight line-clamp-1">
             {product.name}
           </h2>
 
@@ -242,53 +242,53 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
           </div>
 
           {/* Description */}
-          <p className="text-gray-400 text-sm leading-relaxed mb-4 line-clamp-2">
-            {product.description || 'Premium quality product with excellent features and great value.'}
+          <p className="text-gray-400 text-xs leading-relaxed mb-3 line-clamp-2">
+            {product.description || 'Premium quality product with excellent features.'}
           </p>
 
           {/* Price Section */}
-          <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-2xl font-bold text-cyan-400 tracking-tight">
+          <div className="flex items-baseline gap-2 mb-3">
+            <span className="text-lg font-bold text-cyan-400 tracking-tight">
               {formatPrice(product.price)}
             </span>
             <div className="flex items-center gap-1 text-green-400">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3 h-3">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
               </svg>
-              <span className="text-[10px] font-medium">Free Delivery</span>
+              <span className="text-[9px] font-medium">Free Delivery</span>
             </div>
           </div>
 
           {/* Quantity Selector & Add to Cart */}
           {onAddToCart && (
-            <div className="relative pt-4 border-t border-charcoal-700/50">
+            <div className="relative pt-3 border-t border-charcoal-700/50">
               {/* Spark Animation Canvas */}
               <canvas
                 ref={canvasRef}
                 className="absolute inset-0 pointer-events-none z-50"
-                width={340}
-                height={120}
+                width={280}
+                height={100}
               />
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {/* Quantity Selector */}
-                <div className="flex items-center bg-charcoal-700/50 rounded-xl border border-charcoal-600/50 overflow-hidden">
+                <div className="flex items-center bg-charcoal-700/50 rounded-lg border border-charcoal-600/50 overflow-hidden">
                   <button
                     onClick={decrementQuantity}
                     disabled={quantity <= 1}
-                    className="w-9 h-9 flex items-center justify-center text-cyan-400 hover:bg-charcoal-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="w-7 h-7 flex items-center justify-center text-cyan-400 hover:bg-charcoal-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
                     </svg>
                   </button>
-                  <span className="w-10 text-center text-sm font-bold text-white">{quantity}</span>
+                  <span className="w-8 text-center text-xs font-bold text-white">{quantity}</span>
                   <button
                     onClick={incrementQuantity}
                     disabled={quantity >= product.stock}
-                    className="w-9 h-9 flex items-center justify-center text-cyan-400 hover:bg-charcoal-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="w-7 h-7 flex items-center justify-center text-cyan-400 hover:bg-charcoal-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
                   </button>
@@ -300,8 +300,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
                   onClick={handleAddToCart}
                   disabled={product.stock === 0 || isAdding}
                   className={`
-                    flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm
-                    flex items-center justify-center gap-2
+                    flex-1 py-2 px-3 rounded-lg font-semibold text-xs
+                    flex items-center justify-center gap-1.5
                     transition-all duration-300 transform
                     ${product.stock === 0 
                       ? 'bg-charcoal-700/50 text-charcoal-500 cursor-not-allowed' 
@@ -313,7 +313,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
                 >
                   {isAdding ? (
                     <>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                       </svg>
                       Added!
@@ -322,7 +322,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
                     'Out of Stock'
                   ) : (
                     <>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                       </svg>
                       Add to Cart
@@ -363,29 +363,157 @@ interface ProductGridProps {
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onClose, onAddToCart }) => {
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
+  const [canScrollRight, setCanScrollRight] = React.useState(false);
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  
+  const CARD_WIDTH = 292; // 280px card + 12px gap (gap-3)
+  const VISIBLE_CARDS = 5;
+
+  // Check scroll position and update button states
+  const updateScrollState = React.useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const scrollLeft = container.scrollLeft;
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft < maxScroll - 10);
+    
+    // Calculate current index based on scroll position
+    const newIndex = Math.round(scrollLeft / CARD_WIDTH);
+    setCurrentIndex(newIndex);
+  }, []);
+
+  // Initialize scroll state
+  React.useEffect(() => {
+    updateScrollState();
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', updateScrollState);
+      // Check if we need scroll buttons (more than visible cards)
+      setCanScrollRight(products.length > VISIBLE_CARDS);
+    }
+    return () => container?.removeEventListener('scroll', updateScrollState);
+  }, [products, updateScrollState]);
+
+  // Scroll to next card with smooth animation
+  const scrollNext = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const nextIndex = Math.min(currentIndex + 1, products.length - VISIBLE_CARDS);
+    container.scrollTo({
+      left: nextIndex * CARD_WIDTH,
+      behavior: 'smooth'
+    });
+  };
+
+  // Scroll to previous card with smooth animation
+  const scrollPrev = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    container.scrollTo({
+      left: prevIndex * CARD_WIDTH,
+      behavior: 'smooth'
+    });
+  };
+
   if (!products || products.length === 0) return null;
 
   return (
-    <div className="relative w-full">
-      {/* Close All Button */}
+    <div className="relative w-full max-w-full group">
+      {/* Close Button - Fixed position relative to grid container */}
       {onClose && (
         <button 
-          onClick={onClose}
-          className="absolute -top-2 -right-2 z-30 w-8 h-8 rounded-full bg-charcoal-900 border border-cyan-500/30 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/20 hover:text-white transition-all shadow-lg"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onClose();
+          }}
+          className="absolute -top-8 right-0 z-50 w-6 h-6 rounded-full bg-charcoal-800 border border-cyan-500/40 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/30 hover:text-white hover:border-cyan-400 transition-all shadow-lg cursor-pointer"
+          style={{ pointerEvents: 'auto' }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       )}
+
+      {/* Left Navigation Arrow */}
+      {canScrollLeft && (
+        <button
+          onClick={scrollPrev}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-charcoal-900/95 border border-cyan-500/50 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/30 hover:text-white hover:border-cyan-400 hover:scale-110 transition-all duration-300 shadow-lg shadow-cyan-500/20 backdrop-blur-sm"
+          style={{ pointerEvents: 'auto' }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+        </button>
+      )}
+
+      {/* Right Navigation Arrow */}
+      {canScrollRight && (
+        <button
+          onClick={scrollNext}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-charcoal-900/95 border border-cyan-500/50 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/30 hover:text-white hover:border-cyan-400 hover:scale-110 transition-all duration-300 shadow-lg shadow-cyan-500/20 backdrop-blur-sm animate-pulse"
+          style={{ pointerEvents: 'auto' }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </button>
+      )}
       
-      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-        {products.map((product) => (
-          <div key={product.id} className="flex-shrink-0">
+      {/* Products Container */}
+      <div 
+        ref={scrollContainerRef}
+        className="flex gap-3 overflow-x-auto pb-3 pt-1 px-1 scrollbar-hide scroll-smooth snap-x snap-mandatory" 
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {products.map((product, index) => (
+          <div 
+            key={product.id} 
+            className="flex-shrink-0 snap-start transition-all duration-500 ease-out"
+            style={{
+              transform: `translateX(0)`,
+              opacity: 1,
+            }}
+          >
             <ProductCard product={product} onAddToCart={onAddToCart} />
           </div>
         ))}
       </div>
+
+      {/* Pagination Dots (for more than 5 products) */}
+      {products.length > VISIBLE_CARDS && (
+        <div className="flex justify-center gap-1.5 mt-2">
+          {Array.from({ length: Math.ceil(products.length - VISIBLE_CARDS + 1) }).map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                const container = scrollContainerRef.current;
+                if (container) {
+                  container.scrollTo({
+                    left: idx * CARD_WIDTH,
+                    behavior: 'smooth'
+                  });
+                }
+              }}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                currentIndex === idx 
+                  ? 'bg-cyan-400 w-6' 
+                  : 'bg-charcoal-600 hover:bg-cyan-500/50'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

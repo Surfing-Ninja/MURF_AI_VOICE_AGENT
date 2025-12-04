@@ -1707,8 +1707,10 @@ const AgentInterface: React.FC = () => {
         </div>
       </header>
 
-      {/* Cart - Below Navbar, in corner */}
-      <div className="absolute top-[60px] right-4 z-30">
+      {/* Cart - Below Navbar, in corner - Hidden when products are displayed */}
+      <div className={`absolute top-[60px] right-4 transition-all duration-300 ${
+        displayedProducts.length > 0 ? 'z-10 opacity-50 pointer-events-none' : 'z-30'
+      }`}>
         <PopUpCart
           items={cartItems}
           isOpen={isCartOpen}
@@ -1799,23 +1801,15 @@ const AgentInterface: React.FC = () => {
 
         {/* Product Cards Display Section */}
         {displayedProducts.length > 0 && (
-          <div className="flex-shrink-0 px-6 py-4 relative z-20">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 text-cyan-400">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                  </svg>
-                </div>
-                <span className="text-xs font-medium text-cyan-300/80">Products Found</span>
-                <span className="text-[10px] text-cyan-500 bg-cyan-500/10 px-1.5 py-0.5 rounded-full">{displayedProducts.length}</span>
+          <div className="flex-shrink-0 px-4 py-3 relative z-20 max-w-full overflow-hidden">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-5 h-5 rounded-md bg-cyan-500/10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3 h-3 text-cyan-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                </svg>
               </div>
-              <button 
-                onClick={() => setDisplayedProducts([])}
-                className="text-[10px] text-cyan-500/50 hover:text-cyan-400 transition-colors px-2 py-1 rounded hover:bg-charcoal-800/50"
-              >
-                Close
-              </button>
+              <span className="text-[11px] font-medium text-cyan-300/80">Products Found</span>
+              <span className="text-[10px] text-cyan-500 bg-cyan-500/10 px-1.5 py-0.5 rounded-full">{displayedProducts.length}</span>
             </div>
             <ProductGrid 
               products={displayedProducts} 
