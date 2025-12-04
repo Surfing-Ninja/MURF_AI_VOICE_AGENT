@@ -199,8 +199,8 @@ const tools = [
           type: "OBJECT" as any,
           properties: {
             product_name: { type: "STRING" as any, description: "Name or partial name of the product to search for (e.g., 'iPhone', 'MacBook', 'PlayStation')" },
-            category: { type: "STRING" as any, description: "Optional: Category name to filter by (e.g., 'Electronics', 'Home & Kitchen', 'Sports', 'Automotive')" },
-            subcategory: { type: "STRING" as any, description: "Optional: Subcategory name to filter by (e.g., 'Laptops', 'Mobiles', 'Wearables', 'Fitness Gear', 'Kitchen Tools')" },
+            category: { type: "STRING" as any, description: "Optional: Category name to filter by. Valid values: 'Electronics & Gadgets', 'Home & Kitchen', 'Sports & Outdoors', 'Automotive'" },
+            subcategory: { type: "STRING" as any, description: "Optional: Subcategory to filter by. Use 'laptops' for laptops/PCs, 'mobiles' for phones, 'wearables' for watches, 'fitness' for fitness gear, 'kitchen' for kitchen items, etc." },
             brand: { type: "STRING" as any, description: "Optional: Brand name to filter by (e.g., 'Apple', 'Samsung', 'Nike', 'Dell', 'Sony')" },
             min_price: { type: "INTEGER" as any, description: "Optional: Minimum price filter in INR (e.g., 10000 for products above ₹10,000)" },
             max_price: { type: "INTEGER" as any, description: "Optional: Maximum price filter in INR (e.g., 100000 for products under ₹1,00,000 or 1 lakh)" }
@@ -466,16 +466,27 @@ const AgentInterface: React.FC = () => {
       const existingIndex = prevItems.findIndex(item => item.id === product.id);
       
       if (existingIndex !== -1) {
-        // Update existing item quantity
+        // Update existing item quantity - cap at stock level
         const newItems = [...prevItems];
+        const currentQty = newItems[existingIndex].cartQuantity;
+        const maxAllowed = product.stock - currentQty;
+        const actualQuantityToAdd = Math.min(quantity, maxAllowed);
+        
+        if (actualQuantityToAdd <= 0) {
+          // Can't add more, already at stock limit
+          return prevItems;
+        }
+        
         newItems[existingIndex] = {
           ...newItems[existingIndex],
-          cartQuantity: newItems[existingIndex].cartQuantity + quantity
+          cartQuantity: currentQty + actualQuantityToAdd
         };
         return newItems;
       } else {
-        // Add new item
-        return [...prevItems, { ...product, cartQuantity: quantity }];
+        // Add new item - cap at stock level
+        const actualQuantity = Math.min(quantity, product.stock);
+        if (actualQuantity <= 0) return prevItems;
+        return [...prevItems, { ...product, cartQuantity: actualQuantity }];
       }
     });
   }, []);
@@ -489,9 +500,14 @@ const AgentInterface: React.FC = () => {
       if (quantity <= 0) {
         return prevItems.filter(item => item.id !== productId);
       }
-      return prevItems.map(item => 
-        item.id === productId ? { ...item, cartQuantity: quantity } : item
-      );
+      return prevItems.map(item => {
+        if (item.id === productId) {
+          // Cap quantity at stock level
+          const cappedQuantity = Math.min(quantity, item.stock);
+          return { ...item, cartQuantity: cappedQuantity };
+        }
+        return item;
+      });
     });
   }, []);
 
@@ -939,23 +955,41 @@ const AgentInterface: React.FC = () => {
                       'Galaxy S24': 'Samsung Galaxy S24 Ultra'
                     };
 
-                    // Normalize subcategory names
+                    // Normalize subcategory names to match database exactly
                     const subcategoryMapping: Record<string, string> = {
                       'laptops': 'Laptops',
                       'laptop': 'Laptops',
-                      'mobiles': 'Mobiles',
-                      'mobile': 'Mobiles',
-                      'phones': 'Mobiles',
-                      'phone': 'Mobiles',
-                      'smartphones': 'Mobiles',
+                      'pcs': 'Laptops',
+                      'computers': 'Laptops',
+                      'gaming': 'Gaming Consoles',
+                      'gaming consoles': 'Gaming Consoles',
+                      'consoles': 'Gaming Consoles',
+                      'playstation': 'Gaming Consoles',
+                      'xbox': 'Gaming Consoles',
+                      'nintendo': 'Gaming Consoles',
+                      'peripherals': 'PC Peripherals',
+                      'keyboard': 'PC Peripherals',
+                      'keyboards': 'PC Peripherals',
+                      'mouse': 'PC Peripherals',
+                      'mice': 'PC Peripherals',
+                      'mobiles': 'Mobiles & Accessories',
+                      'mobile': 'Mobiles & Accessories',
+                      'phones': 'Mobiles & Accessories',
+                      'phone': 'Mobiles & Accessories',
+                      'smartphones': 'Mobiles & Accessories',
                       'wearables': 'Wearables',
                       'watches': 'Wearables',
                       'smartwatch': 'Wearables',
+                      'smart home': 'Smart Home Devices',
                       'fitness': 'Fitness Gear',
                       'kitchen': 'Kitchen Tools',
                       'furniture': 'Furniture',
                       'decor': 'Décor',
-                      'appliances': 'Appliances'
+                      'appliances': 'Appliances',
+                      'car': 'Car Accessories',
+                      'bike': 'Bike Accessories',
+                      'outdoor': 'Outdoor Essentials',
+                      'sportswear': 'Sportswear'
                     };
 
                     productName = nameMapping[productName] || productName;
@@ -1815,6 +1849,7 @@ const AgentInterface: React.FC = () => {
               products={displayedProducts} 
               onClose={() => setDisplayedProducts([])}
               onAddToCart={handleAddToCart}
+              cartItems={cartItems}
             />
           </div>
         )}

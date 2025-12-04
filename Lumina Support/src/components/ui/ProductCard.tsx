@@ -18,6 +18,7 @@ interface ProductCardProps {
   product: Product;
   onClose?: () => void;
   onAddToCart?: (product: Product, quantity: number) => void;
+  cartQuantity?: number; // Quantity already in cart for this product
 }
 
 // Inline ClickSpark for Add to Cart button
@@ -99,12 +100,25 @@ const useClickSpark = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
   return { triggerSpark };
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAddToCart }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAddToCart, cartQuantity = 0 }) => {
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { triggerSpark } = useClickSpark(canvasRef);
+
+  // Calculate remaining stock (total stock minus what's already in cart)
+  const remainingStock = Math.max(0, product.stock - cartQuantity);
+
+  // Reset quantity when cartQuantity changes (item was added)
+  useEffect(() => {
+    // Ensure quantity doesn't exceed remaining stock
+    if (quantity > remainingStock && remainingStock > 0) {
+      setQuantity(remainingStock);
+    } else if (remainingStock === 0) {
+      setQuantity(1); // Reset but button will be disabled
+    }
+  }, [cartQuantity, remainingStock]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -116,7 +130,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
   };
 
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!onAddToCart || product.stock === 0) return;
+    if (!onAddToCart || remainingStock === 0) return;
+    
+    // Ensure we don't add more than remaining stock
+    const quantityToAdd = Math.min(quantity, remainingStock);
+    if (quantityToAdd <= 0) return;
     
     // Trigger spark animation
     const rect = buttonRef.current?.getBoundingClientRect();
@@ -128,16 +146,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
     }
 
     setIsAdding(true);
-    onAddToCart(product, quantity);
+    onAddToCart(product, quantityToAdd);
     
     setTimeout(() => {
       setIsAdding(false);
+      // Reset quantity to 1 or remaining stock if less
       setQuantity(1);
     }, 600);
   };
 
   const incrementQuantity = () => {
-    if (quantity < product.stock) {
+    if (quantity < remainingStock) {
       setQuantity(q => q + 1);
     }
   };
@@ -298,12 +317,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
                 <button
                   ref={buttonRef}
                   onClick={handleAddToCart}
-                  disabled={product.stock === 0 || isAdding}
+                  disabled={remainingStock === 0 || isAdding}
                   className={`
                     flex-1 py-2 px-3 rounded-lg font-semibold text-xs
                     flex items-center justify-center gap-1.5
                     transition-all duration-300 transform
-                    ${product.stock === 0 
+                    ${remainingStock === 0 
                       ? 'bg-charcoal-700/50 text-charcoal-500 cursor-not-allowed' 
                       : isAdding
                         ? 'bg-green-500 text-white scale-95'
@@ -318,8 +337,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
                       </svg>
                       Added!
                     </>
-                  ) : product.stock === 0 ? (
-                    'Out of Stock'
+                  ) : remainingStock === 0 ? (
+                    cartQuantity > 0 ? 'Max in Cart' : 'Out of Stock'
                   ) : (
                     <>
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
@@ -332,8 +351,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
               </div>
               
               {/* Stock indicator */}
-              <p className="text-[10px] text-charcoal-500 mt-2 text-center">
-                {product.stock} units available
+              <p className={`text-[10px] mt-2 text-center ${remainingStock === 0 ? 'text-red-400' : 'text-charcoal-500'}`}>
+                {remainingStock === 0 
+                  ? `All ${product.stock} units in cart` 
+                  : cartQuantity > 0 
+                    ? `${remainingStock} of ${product.stock} units available (${cartQuantity} in cart)`
+                    : `${product.stock} units available`
+                }
               </p>
             </div>
           )}
@@ -356,13 +380,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onAd
 };
 
 // Component to display multiple products in a grid
+export interface CartItemInfo {
+  id: number;
+  cartQuantity: number;
+}
+
 interface ProductGridProps {
   products: Product[];
   onClose?: () => void;
   onAddToCart?: (product: Product, quantity: number) => void;
+  cartItems?: CartItemInfo[]; // Cart items to track quantities
 }
 
-export const ProductGrid: React.FC<ProductGridProps> = ({ products, onClose, onAddToCart }) => {
+export const ProductGrid: React.FC<ProductGridProps> = ({ products, onClose, onAddToCart, cartItems = [] }) => {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = React.useState(false);
   const [canScrollRight, setCanScrollRight] = React.useState(false);
@@ -370,6 +400,12 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onClose, onA
   
   const CARD_WIDTH = 292; // 280px card + 12px gap (gap-3)
   const VISIBLE_CARDS = 5;
+
+  // Helper to get cart quantity for a product
+  const getCartQuantity = (productId: number) => {
+    const cartItem = cartItems.find(item => item.id === productId);
+    return cartItem?.cartQuantity || 0;
+  };
 
   // Check scroll position and update button states
   const updateScrollState = React.useCallback(() => {
@@ -485,7 +521,11 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onClose, onA
               opacity: 1,
             }}
           >
-            <ProductCard product={product} onAddToCart={onAddToCart} />
+            <ProductCard 
+              product={product} 
+              onAddToCart={onAddToCart} 
+              cartQuantity={getCartQuantity(product.id)}
+            />
           </div>
         ))}
       </div>

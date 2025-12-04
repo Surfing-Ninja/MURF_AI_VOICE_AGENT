@@ -67,6 +67,8 @@ function initializeDatabase() {
         db.run(`CREATE TABLE IF NOT EXISTS orders (
             id TEXT PRIMARY KEY,
             customer_name TEXT,
+            product_name TEXT,
+            quantity INTEGER,
             customer_email TEXT,
             customer_phone TEXT,
             customer_address TEXT,
@@ -176,10 +178,12 @@ function initializeDatabase() {
                     const subStmt = db.prepare("INSERT INTO subcategories (name, category_id) VALUES (?, ?)");
                     
                     // Electronics & Gadgets (category_id: 1)
-                    subStmt.run("Mobiles & Accessories", 1);
-                    subStmt.run("Laptops, PCs, Components", 1);
-                    subStmt.run("Smart Home Devices", 1);
-                    subStmt.run("Wearables", 1);
+                    subStmt.run("Mobiles & Accessories", 1);     // id: 1
+                    subStmt.run("Laptops", 1);                    // id: 2 (ONLY laptops)
+                    subStmt.run("Smart Home Devices", 1);         // id: 3
+                    subStmt.run("Wearables", 1);                  // id: 4
+                    subStmt.run("Gaming Consoles", 1);            // id: 5 (NEW)
+                    subStmt.run("PC Peripherals", 1);             // id: 6 (NEW - keyboards, mice)
                     
                     // Home & Kitchen (category_id: 2)
                     subStmt.run("Furniture", 2);
@@ -223,12 +227,14 @@ function initializeDatabase() {
                 stmt.run("iPhone 15 Pro Max", 134900, 40, "Titanium, 256GB, 6.7-inch display", 1, 1, "Apple", "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=400&h=400&fit=crop");
                 stmt.run("Wireless Earbuds Pro", 8999, 150, "ANC, 30hrs battery, IPX7 waterproof", 1, 1, "Generic", "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=400&fit=crop");
                 
-                // Electronics & Gadgets - Laptops, PCs, Components
+                // Electronics & Gadgets - Laptops (subcategory_id: 2)
                 stmt.run("MacBook Air M3", 99900, 30, "13.6-inch Liquid Retina display, 8GB RAM", 1, 2, "Apple", "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop");
                 stmt.run("Dell XPS 15", 124999, 25, "Intel i7 13th Gen, 16GB RAM, RTX 4060", 1, 2, "Dell", "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=400&fit=crop");
                 stmt.run("ASUS ROG Gaming Laptop", 134999, 20, "RTX 4070, 32GB RAM, 15.6-inch 240Hz", 1, 2, "ASUS", "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=400&h=400&fit=crop");
-                stmt.run("Logitech MX Master 3S", 8999, 100, "Wireless mouse, 8K DPI, ergonomic", 1, 2, "Logitech", "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop");
-                stmt.run("Mechanical Keyboard RGB", 4999, 80, "Cherry MX switches, customizable RGB", 1, 2, "Generic", "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=400&h=400&fit=crop");
+                
+                // Electronics & Gadgets - PC Peripherals (subcategory_id: 6)
+                stmt.run("Logitech MX Master 3S", 8999, 100, "Wireless mouse, 8K DPI, ergonomic", 1, 6, "Logitech", "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop");
+                stmt.run("Mechanical Keyboard RGB", 4999, 80, "Cherry MX switches, customizable RGB", 1, 6, "Generic", "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=400&h=400&fit=crop");
                 
                 // Electronics & Gadgets - Smart Home Devices
                 stmt.run("Echo Dot 5th Gen", 4999, 120, "Alexa voice control, smart speaker", 1, 3, "Amazon", "https://images.unsplash.com/photo-1543512214-318c7553f230?w=400&h=400&fit=crop");
@@ -241,62 +247,62 @@ function initializeDatabase() {
                 stmt.run("Fitbit Charge 6", 14999, 80, "Heart rate, GPS, sleep tracking", 1, 4, "Fitbit", "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400&h=400&fit=crop");
                 stmt.run("Sony WH-1000XM5", 19990, 100, "Industry leading noise cancellation", 1, 4, "Sony", "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400&h=400&fit=crop");
                 
-                // Home & Kitchen - Furniture
-                stmt.run("Ergonomic Office Chair", 24999, 40, "Lumbar support, mesh back, adjustable", 2, 5, "Generic", "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=400&h=400&fit=crop");
-                stmt.run("Study Desk with Storage", 15999, 30, "Wooden, 4ft wide, drawer organizer", 2, 5, "Generic", "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=400&h=400&fit=crop");
-                stmt.run("Premium Sofa Set", 54999, 15, "3-seater, fabric upholstery, modern design", 2, 5, "Generic", "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=400&fit=crop");
+                // Home & Kitchen - Furniture (subcategory_id: 7)
+                stmt.run("Ergonomic Office Chair", 24999, 40, "Lumbar support, mesh back, adjustable", 2, 7, "Generic", "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=400&h=400&fit=crop");
+                stmt.run("Study Desk with Storage", 15999, 30, "Wooden, 4ft wide, drawer organizer", 2, 7, "Generic", "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=400&h=400&fit=crop");
+                stmt.run("Premium Sofa Set", 54999, 15, "3-seater, fabric upholstery, modern design", 2, 7, "Generic", "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=400&fit=crop");
                 
-                // Home & Kitchen - Kitchen Tools
-                stmt.run("Stainless Steel Cookware Set", 5999, 50, "10-piece, non-stick, induction compatible", 2, 6, "Prestige", "https://images.unsplash.com/photo-1584990347449-a2d4c2c044c9?w=400&h=400&fit=crop");
-                stmt.run("Electric Kettle 1.5L", 1299, 100, "Auto shut-off, stainless steel", 2, 6, "Philips", "https://images.unsplash.com/photo-1594213114663-d94db9b17b2e?w=400&h=400&fit=crop");
-                stmt.run("Food Processor 600W", 4999, 60, "Multi-function, 3 jars, mixer grinder", 2, 6, "Bajaj", "https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=400&h=400&fit=crop");
+                // Home & Kitchen - Kitchen Tools (subcategory_id: 8)
+                stmt.run("Stainless Steel Cookware Set", 5999, 50, "10-piece, non-stick, induction compatible", 2, 8, "Prestige", "https://images.unsplash.com/photo-1584990347449-a2d4c2c044c9?w=400&h=400&fit=crop");
+                stmt.run("Electric Kettle 1.5L", 1299, 100, "Auto shut-off, stainless steel", 2, 8, "Philips", "https://images.unsplash.com/photo-1594213114663-d94db9b17b2e?w=400&h=400&fit=crop");
+                stmt.run("Food Processor 600W", 4999, 60, "Multi-function, 3 jars, mixer grinder", 2, 8, "Bajaj", "https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=400&h=400&fit=crop");
                 
-                // Home & Kitchen - Décor
-                stmt.run("Wall Art Canvas Set", 2999, 70, "3-piece modern abstract, framed", 2, 7, "Generic", "https://images.unsplash.com/photo-1513519245088-0e12902e35ca?w=400&h=400&fit=crop");
-                stmt.run("LED String Lights 10M", 899, 150, "Warm white, waterproof, USB powered", 2, 7, "Generic", "https://images.unsplash.com/photo-1513001900722-370f803f498d?w=400&h=400&fit=crop");
-                stmt.run("Decorative Table Lamp", 1999, 80, "Bedside, touch control, dimmable", 2, 7, "Generic", "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400&h=400&fit=crop");
+                // Home & Kitchen - Décor (subcategory_id: 9)
+                stmt.run("Wall Art Canvas Set", 2999, 70, "3-piece modern abstract, framed", 2, 9, "Generic", "https://images.unsplash.com/photo-1513519245088-0e12902e35ca?w=400&h=400&fit=crop");
+                stmt.run("LED String Lights 10M", 899, 150, "Warm white, waterproof, USB powered", 2, 9, "Generic", "https://images.unsplash.com/photo-1513001900722-370f803f498d?w=400&h=400&fit=crop");
+                stmt.run("Decorative Table Lamp", 1999, 80, "Bedside, touch control, dimmable", 2, 9, "Generic", "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400&h=400&fit=crop");
                 
-                // Home & Kitchen - Appliances
-                stmt.run("Air Fryer 4L", 6999, 55, "1400W, digital display, 8 presets", 2, 8, "Philips", "https://images.unsplash.com/photo-1626509653291-18d9a934b9db?w=400&h=400&fit=crop");
-                stmt.run("Vacuum Cleaner Robotic", 24999, 25, "Auto-charge, app control, 2000Pa suction", 2, 8, "Mi", "https://images.unsplash.com/photo-1558317374-067fb5f30001?w=400&h=400&fit=crop");
-                stmt.run("Microwave Oven 20L", 7999, 40, "Solo, 700W, child lock", 2, 8, "LG", "https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?w=400&h=400&fit=crop");
+                // Home & Kitchen - Appliances (subcategory_id: 10)
+                stmt.run("Air Fryer 4L", 6999, 55, "1400W, digital display, 8 presets", 2, 10, "Philips", "https://images.unsplash.com/photo-1626509653291-18d9a934b9db?w=400&h=400&fit=crop");
+                stmt.run("Vacuum Cleaner Robotic", 24999, 25, "Auto-charge, app control, 2000Pa suction", 2, 10, "Mi", "https://images.unsplash.com/photo-1558317374-067fb5f30001?w=400&h=400&fit=crop");
+                stmt.run("Microwave Oven 20L", 7999, 40, "Solo, 700W, child lock", 2, 10, "LG", "https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?w=400&h=400&fit=crop");
                 
-                // Sports & Outdoors - Fitness Gear
-                stmt.run("Yoga Mat Premium", 1299, 100, "6mm thick, anti-slip, eco-friendly", 3, 9, "Generic", "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400&h=400&fit=crop");
-                stmt.run("Dumbbell Set 20kg", 3499, 50, "Adjustable weight, chrome finish", 3, 9, "Generic", "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=400&fit=crop");
-                stmt.run("Resistance Bands Set", 899, 120, "5 bands, different resistance levels", 3, 9, "Generic", "https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=400&h=400&fit=crop");
-                stmt.run("Treadmill Folding", 34999, 20, "2.5HP motor, 12 programs, LCD display", 3, 9, "Generic", "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=400&h=400&fit=crop");
+                // Sports & Outdoors - Fitness Gear (subcategory_id: 11)
+                stmt.run("Yoga Mat Premium", 1299, 100, "6mm thick, anti-slip, eco-friendly", 3, 11, "Generic", "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400&h=400&fit=crop");
+                stmt.run("Dumbbell Set 20kg", 3499, 50, "Adjustable weight, chrome finish", 3, 11, "Generic", "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=400&fit=crop");
+                stmt.run("Resistance Bands Set", 899, 120, "5 bands, different resistance levels", 3, 11, "Generic", "https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=400&h=400&fit=crop");
+                stmt.run("Treadmill Folding", 34999, 20, "2.5HP motor, 12 programs, LCD display", 3, 11, "Generic", "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=400&h=400&fit=crop");
                 
-                // Sports & Outdoors - Sportswear
-                stmt.run("Running Shoes Men", 4999, 80, "Cushioned sole, breathable mesh", 3, 10, "Nike", "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop");
-                stmt.run("Sports T-Shirt Dri-FIT", 1299, 150, "Moisture-wicking, anti-odor", 3, 10, "Adidas", "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop");
-                stmt.run("Gym Shorts Compression", 999, 130, "Quick-dry, elastic waistband", 3, 10, "Puma", "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=400&h=400&fit=crop");
+                // Sports & Outdoors - Sportswear (subcategory_id: 12)
+                stmt.run("Running Shoes Men", 4999, 80, "Cushioned sole, breathable mesh", 3, 12, "Nike", "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop");
+                stmt.run("Sports T-Shirt Dri-FIT", 1299, 150, "Moisture-wicking, anti-odor", 3, 12, "Adidas", "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop");
+                stmt.run("Gym Shorts Compression", 999, 130, "Quick-dry, elastic waistband", 3, 12, "Puma", "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=400&h=400&fit=crop");
                 
-                // Sports & Outdoors - Outdoor Essentials
-                stmt.run("Camping Tent 4-Person", 8999, 30, "Waterproof, easy setup, carry bag", 3, 11, "Quechua", "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&h=400&fit=crop");
-                stmt.run("Hiking Backpack 50L", 3999, 50, "Multiple compartments, rain cover", 3, 11, "Wildcraft", "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop");
-                stmt.run("Water Bottle Insulated", 899, 200, "1L, keeps cold 24hrs, BPA-free", 3, 11, "Milton", "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop");
+                // Sports & Outdoors - Outdoor Essentials (subcategory_id: 13)
+                stmt.run("Camping Tent 4-Person", 8999, 30, "Waterproof, easy setup, carry bag", 3, 13, "Quechua", "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&h=400&fit=crop");
+                stmt.run("Hiking Backpack 50L", 3999, 50, "Multiple compartments, rain cover", 3, 13, "Wildcraft", "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop");
+                stmt.run("Water Bottle Insulated", 899, 200, "1L, keeps cold 24hrs, BPA-free", 3, 13, "Milton", "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop");
                 
-                // Automotive - Car Accessories
-                stmt.run("Car Dashboard Camera", 4999, 60, "1080p, night vision, loop recording", 4, 12, "Generic", "https://images.unsplash.com/photo-1621266876144-f5351e45d605?w=400&h=400&fit=crop");
-                stmt.run("Car Phone Mount Magnetic", 599, 150, "360° rotation, strong grip", 4, 12, "Generic", "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=400&h=400&fit=crop");
-                stmt.run("Car Vacuum Cleaner", 2499, 70, "Portable, 12V, HEPA filter", 4, 12, "Black & Decker", "https://images.unsplash.com/photo-1558317374-067fb5f30001?w=400&h=400&fit=crop");
-                stmt.run("Tire Pressure Monitor", 2999, 50, "Digital display, 4 sensors, wireless", 4, 12, "Generic", "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?w=400&h=400&fit=crop");
+                // Automotive - Car Accessories (subcategory_id: 14)
+                stmt.run("Car Dashboard Camera", 4999, 60, "1080p, night vision, loop recording", 4, 14, "Generic", "https://images.unsplash.com/photo-1621266876144-f5351e45d605?w=400&h=400&fit=crop");
+                stmt.run("Car Phone Mount Magnetic", 599, 150, "360° rotation, strong grip", 4, 14, "Generic", "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=400&h=400&fit=crop");
+                stmt.run("Car Vacuum Cleaner", 2499, 70, "Portable, 12V, HEPA filter", 4, 14, "Black & Decker", "https://images.unsplash.com/photo-1558317374-067fb5f30001?w=400&h=400&fit=crop");
+                stmt.run("Tire Pressure Monitor", 2999, 50, "Digital display, 4 sensors, wireless", 4, 14, "Generic", "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?w=400&h=400&fit=crop");
                 
-                // Automotive - Bike Accessories
-                stmt.run("Bike Helmet with LED", 1499, 100, "Adjustable, ventilated, rear LED light", 4, 13, "Generic", "https://images.unsplash.com/photo-1557803175-2f8c4c543d85?w=400&h=400&fit=crop");
-                stmt.run("Bike Lock Chain Heavy Duty", 899, 120, "Steel chain, weather resistant", 4, 13, "Generic", "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400&h=400&fit=crop");
-                stmt.run("Bike Phone Holder", 399, 180, "Universal fit, anti-shake, waterproof", 4, 13, "Generic", "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop");
+                // Automotive - Bike Accessories (subcategory_id: 15)
+                stmt.run("Bike Helmet with LED", 1499, 100, "Adjustable, ventilated, rear LED light", 4, 15, "Generic", "https://images.unsplash.com/photo-1557803175-2f8c4c543d85?w=400&h=400&fit=crop");
+                stmt.run("Bike Lock Chain Heavy Duty", 899, 120, "Steel chain, weather resistant", 4, 15, "Generic", "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400&h=400&fit=crop");
+                stmt.run("Bike Phone Holder", 399, 180, "Universal fit, anti-shake, waterproof", 4, 15, "Generic", "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop");
                 
-                // Automotive - Tools & Maintenance
-                stmt.run("Car Tool Kit 46-Piece", 2999, 40, "Screwdrivers, wrenches, pliers, case", 4, 14, "Bosch", "https://images.unsplash.com/photo-1581166397057-235af2b3c6dd?w=400&h=400&fit=crop");
-                stmt.run("Portable Air Compressor", 3999, 35, "12V, digital gauge, auto shut-off", 4, 14, "Generic", "https://images.unsplash.com/photo-1600493572220-353c267e1678?w=400&h=400&fit=crop");
-                stmt.run("Engine Oil 5W-30 4L", 1999, 80, "Synthetic, high performance", 4, 14, "Castrol", "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=400&h=400&fit=crop");
+                // Automotive - Tools & Maintenance (subcategory_id: 16)
+                stmt.run("Car Tool Kit 46-Piece", 2999, 40, "Screwdrivers, wrenches, pliers, case", 4, 16, "Bosch", "https://images.unsplash.com/photo-1581166397057-235af2b3c6dd?w=400&h=400&fit=crop");
+                stmt.run("Portable Air Compressor", 3999, 35, "12V, digital gauge, auto shut-off", 4, 16, "Generic", "https://images.unsplash.com/photo-1600493572220-353c267e1678?w=400&h=400&fit=crop");
+                stmt.run("Engine Oil 5W-30 4L", 1999, 80, "Synthetic, high performance", 4, 16, "Castrol", "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=400&h=400&fit=crop");
                 
-                // Gaming
-                stmt.run("PlayStation 5", 54990, 10, "4K 120Hz gaming console, 825GB SSD", 1, 2, "Sony", "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400&h=400&fit=crop");
-                stmt.run("Xbox Series X", 52990, 12, "4K gaming, 1TB SSD, Game Pass", 1, 2, "Microsoft", "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=400&h=400&fit=crop");
-                stmt.run("Nintendo Switch OLED", 34990, 25, "7-inch OLED screen, portable gaming", 1, 2, "Nintendo", "https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=400&h=400&fit=crop");
+                // Gaming Consoles (subcategory_id: 5)
+                stmt.run("PlayStation 5", 54990, 10, "4K 120Hz gaming console, 825GB SSD", 1, 5, "Sony", "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400&h=400&fit=crop");
+                stmt.run("Xbox Series X", 52990, 12, "4K gaming, 1TB SSD, Game Pass", 1, 5, "Microsoft", "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=400&h=400&fit=crop");
+                stmt.run("Nintendo Switch OLED", 34990, 25, "7-inch OLED screen, portable gaming", 1, 5, "Nintendo", "https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=400&h=400&fit=crop");
                 
                 stmt.finalize(() => {
                     console.log("Products seeded successfully with images!");
@@ -313,10 +319,10 @@ function initializeDatabase() {
             db.get("SELECT count(*) as count FROM orders", (err, row) => {
                 if (!row || row.count === 0) {
                     console.log("Seeding dummy orders...");
-                    const stmt = db.prepare("INSERT INTO orders (id, customer_name, product_name, quantity, status, delivery_date, order_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    stmt.run("ORD-99887", "Rahul Sharma", "iPhone 15 Pro", 1, "Shipped", "2023-11-10", "2023-11-05");
-                    stmt.run("ORD-77665", "Priya Patel", "Sony WH-1000XM5", 2, "Processing", "2023-11-15", "2023-11-12");
-                    stmt.run("ORD-55443", "Amit Kumar", "MacBook Air M3", 1, "Delivered", "2023-10-20", "2023-10-15");
+                    const stmt = db.prepare("INSERT INTO orders (id, customer_name, product_name, quantity, customer_address, status, delivery_date, order_date, subtotal, total_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    stmt.run("ORD-99887", "Rahul Sharma", "iPhone 15 Pro", 1, "123 Main St, Mumbai", "Shipped", "2023-11-10", "2023-11-05", 119900, 119900);
+                    stmt.run("ORD-77665", "Priya Patel", "Sony WH-1000XM5", 2, "456 Oak Ave, Delhi", "Processing", "2023-11-15", "2023-11-12", 39980, 39980);
+                    stmt.run("ORD-55443", "Amit Kumar", "MacBook Air M3", 1, "789 Park Rd, Bangalore", "Delivered", "2023-10-20", "2023-10-15", 99900, 99900);
                     stmt.finalize(() => {
                         console.log("Orders seeded!");
                     });
