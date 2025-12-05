@@ -1,7 +1,7 @@
 # 🌟 क्रेता-बन्धु (Kreta-Bandhu)
 ### Next-Generation AI Voice-First Customer Support Agent
 
-![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge) ![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash_Native_Audio-4285F4?style=for-the-badge) ![Murf](https://img.shields.io/badge/Murf-Falcon_TTS-FF6B35?style=for-the-badge) ![React](https://img.shields.io/badge/React_19-TypeScript-61DAFB?style=for-the-badge) ![Tailwind](https://img.shields.io/badge/Tailwind_CSS_4-38B2AC?style=for-the-badge) ![Node](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge) ![Murf](https://img.shields.io/badge/Murf-Falcon_TTS-FF6B35?style=for-the-badge) ![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash_Native_Audio-4285F4?style=for-the-badge) ![React](https://img.shields.io/badge/React_19-TypeScript-61DAFB?style=for-the-badge) ![Tailwind](https://img.shields.io/badge/Tailwind_CSS_4-38B2AC?style=for-the-badge) ![Node](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge)
 
 A revolutionary **voice-first** customer support AI agent featuring **Gemini 2.5 Flash Native Audio** for bidirectional voice streaming, **Murf Falcon TTS** for ultra-realistic voice synthesis, real-time voice interruption, intelligent shopping cart management, PDF invoice generation, and a stunning copper-cyan visual theme with OGL-powered WebGL effects.
 
@@ -159,19 +159,19 @@ Customer Support Agent/
 │   │   │   ├── CartFolder.css         # Cart folder styles
 │   │   │   ├── ClickSpark.tsx         # Click spark effects
 │   │   │   ├── HyperspaceLoader.tsx   # Warp-speed loading screen
-│   │   │   ├── LetterGlitch.tsx       # Matrix-style text animation (NEW)
+│   │   │   ├── LetterGlitch.tsx       # Matrix-style text animation 
 │   │   │   ├── LightRays.tsx          # OGL light rays background
-│   │   │   ├── PopUpCart.tsx          # Slide-out shopping cart (NEW)
+│   │   │   ├── PopUpCart.tsx          # Slide-out shopping cart 
 │   │   │   ├── ProductCard.tsx        # Product display cards
-│   │   │   ├── ProfileCard.tsx        # Holographic dev profile cards (NEW)
-│   │   │   ├── ProfileCard.css        # Profile card styles (NEW)
-│   │   │   ├── TextShuffle.tsx        # GSAP text reveal animation (NEW)
+│   │   │   ├── ProfileCard.tsx        # Holographic dev profile cards 
+│   │   │   ├── ProfileCard.css        # Profile card styles 
+│   │   │   ├── TextShuffle.tsx        # GSAP text reveal animation 
 │   │   │   └── VoicePoweredOrb.tsx    # WebGL voice orb
 │   │   │
 │   │   ├── 📁 pages/               # Application Pages
 │   │   │   ├── AgentInterface.tsx     # Main voice agent UI (2000+ lines)
 │   │   │   ├── LandingPage.tsx        # Home page
-│   │   │   └── AboutDevs.tsx          # About Developers page (NEW)
+│   │   │   └── AboutDevs.tsx          # About Developers page
 │   │   │
 │   │   ├── 📁 lib/                 # Shared libraries
 │   │   ├── 📁 utils/
@@ -207,7 +207,7 @@ Customer Support Agent/
 │   ├── test_api.js                 # API testing script
 │   ├── test-deepgram.js            # Deepgram testing
 │   ├── lumina.db                   # SQLite database file
-│   ├── 📁 invoices/                # Generated PDF invoices (NEW)
+│   ├── 📁 invoices/                # Generated PDF invoices
 │   ├── 📁 public/
 │   │   └── index.html
 │   ├── 📁 scripts/
@@ -358,7 +358,7 @@ The AI agent has access to **19+ powerful tools** for handling customer requests
 | `browse_categories` | List all 4 main product categories | None | "What do you sell?" |
 | `browse_subcategories` | List subcategories (optionally filtered by category) | `category` (optional) | "What electronics do you have?" |
 
-### 🛒 **Shopping Cart Tools** *(NEW)*
+### 🛒 **Shopping Cart Tools**
 
 | Tool | Description | Parameters | Example Use |
 |------|-------------|------------|-------------|
@@ -511,27 +511,6 @@ sequenceDiagram
     W->>S: 48kHz Playback
 ```
 
-### **Murf TTS Configuration**
-
-```typescript
-// services/murfService.ts
-const MURF_CONFIG = {
-  voice: 'en-US-natalie',      // Premium voice
-  style: 'conversational',      // Natural conversation style
-  speed: 1.0,                   // Normal speed
-  pitch: 0,                     // Neutral pitch
-  format: 'mp3',                // Output format
-  sampleRate: 48000             // High-quality audio
-};
-```
-
-### **Voice Options**
-- **Natalie (US)**: Warm, professional female voice (default)
-- **Ryan (US)**: Confident male voice
-- **Aria (UK)**: British English accent
-- **Priya (Indian)**: Hindi-accented English
-- **And 120+ more voices across 20+ languages**
-
 ### **Real-time Streaming Flow**
 1. Gemini generates text response
 2. Text sent to Murf Falcon API
@@ -585,62 +564,6 @@ const MURF_CONFIG = {
 
 ---
 
-## 🆕 New UI Components
-
-### **1. TextShuffle Animation**
-GSAP-powered text reveal with character scrambling effect.
-
-**Features:**
-- **Devanagari Support**: Uses `Intl.Segmenter('hi')` for proper grapheme clustering
-- **Loop Animation**: Continuous looping with configurable delay
-- **Customizable**: Speed, delay, trigger options
-
-```tsx
-<TextShuffle 
-  text="क्रेता-बन्धु" 
-  loop={true} 
-  loopDelay={3000}
-  className="text-4xl text-cyan-400"
-/>
-```
-
-### **2. LetterGlitch Background**
-Matrix-style animated text effect for cyberpunk aesthetics.
-
-**Features:**
-- Bright green gradient colors (#0a4a2e → #22c55e)
-- Random character animation
-- Canvas-based for performance
-
-```tsx
-<LetterGlitch
-  glitchColors={['#0a4a2e', '#1a5f3f', '#0e8a4d', '#22c55e']}
-  glitchSpeed={80}
-  centerVignette={true}
-/>
-```
-
-### **3. Holographic Profile Cards**
-3D CSS cards with glow effects for developer profiles.
-
-**Features:**
-- Tilt effect on hover
-- Holographic gradient overlay
-- Role badges and skill tags
-- Social media links
-
-### **4. PopUpCart (Slide-out Cart)**
-Full shopping cart interface with agent synchronization.
-
-**Features:**
-- Real-time sync with agent cart state
-- Product images and descriptions
-- Quantity adjustment
-- Total calculation
-- Checkout integration
-
----
-
 ## 🔧 Configuration & Customization
 
 ### **Environment Variables**
@@ -659,47 +582,6 @@ DB_PATH=./lumina.db
 
 ---
 
-### **Color Theme Customization**
-
-Edit `Lumina Support/tailwind.config.js`:
-```javascript
-theme: {
-  extend: {
-    colors: {
-      copper: {
-        500: '#c87d4a',  // Primary brand color
-      },
-      cyan: {
-        400: '#00d9ff',  // Secondary accent
-      },
-      charcoal: {
-        900: '#0f0f12', // Background
-      }
-    }
-  }
-}
-```
-
----
-
-### **Orb Customization**
-
-Edit `VoicePoweredOrb.tsx` shader uniforms:
-```typescript
-const baseColor1 = [0.78, 0.49, 0.29]; // Copper RGB
-const baseColor2 = [0.90, 0.60, 0.40]; // Lighter copper
-const cyanHighlight = [0.0, 0.85, 1.0]; // Cyan accent
-```
-
----
-
-### **Voice Activity Detection Threshold**
-
-Edit `AgentInterface.tsx` AudioWorklet code:
-```javascript
-this.voiceThreshold = 0.01;        // Lower = more sensitive
-this.framesNeededForVoice = 3;    // Frames before trigger
-```
 
 ---
 
@@ -756,126 +638,6 @@ sequenceDiagram
 ```
 
 ---
-
-## 📡 API Endpoints Reference
-
-### **Product Endpoints**
-
-```http
-GET /api/products
-GET /api/products?search=<name>
-GET /api/products?category=<category>
-GET /api/products?brand=<brand>
-GET /api/products?category=<cat>&brand=<brand>
-```
-
-**Response:**
-```json
-{
-  "products": [
-    {
-      "id": 1,
-      "name": "iPhone 15 Pro",
-      "price": 119900,
-      "stock": 50,
-      "description": "Titanium design, A17 Pro chip, 128GB",
-      "category_id": 1,
-      "subcategory_id": 1,
-      "brand": "Apple",
-      "category_name": "Electronics & Gadgets",
-      "subcategory_name": "Mobiles & Accessories"
-    }
-  ]
-}
-```
-
----
-
-### **Category Endpoints**
-
-```http
-GET /api/categories
-GET /api/subcategories
-GET /api/categories/:id/subcategories
-```
-
----
-
-### **Order Endpoints**
-
-```http
-GET  /api/orders/:id
-POST /api/orders
-POST /api/orders/:id/cancel
-POST /api/orders/:id/discount
-POST /api/orders/:id/shipping
-POST /api/orders/:id/schedule
-```
-
----
-
-### **Customer & Feedback**
-
-```http
-GET  /api/customers?email=<email>&name=<name>
-POST /api/customers
-POST /api/feedback
-GET  /api/refunds/:order_id
-POST /api/refunds
-GET  /api/orders/:id/invoice
-```
-
----
-
-## 🧾 Invoice Generation System
-
-क्रेता-बन्धु automatically generates professional PDF invoices for all orders.
-
-### **Invoice Features**
-- **Clean Professional Design**: Kreta-Bandhu branding with copper accent color
-- **Itemized Table**: Product name, quantity, unit price, line total
-- **Automatic Numbering**: `INV-{timestamp}` format
-- **PDF Format**: Download-ready via API endpoint
-- **Dual Generation**: Created on both `place_order` and `checkout_cart`
-
-### **Invoice Structure**
-```
-┌─────────────────────────────────────────────────┐
-│  🧾 INVOICE                                      │
-│  ───────────────────────────────────────────────│
-│  Invoice #: INV-1733000000000                   │
-│  Date: December 3, 2025                         │
-│  Order ID: ORD-1733000000000                    │
-│  ───────────────────────────────────────────────│
-│  Bill To:                                       │
-│  Customer Name                                  │
-│  Delivery Address Line 1                        │
-│  ───────────────────────────────────────────────│
-│  Item              Qty    Price      Total      │
-│  ─────────────────────────────────────────────  │
-│  iPhone 15 Pro      2    ₹119,900   ₹239,800   │
-│  AirPods Pro        1    ₹24,900    ₹24,900    │
-│  ─────────────────────────────────────────────  │
-│                          TOTAL:     ₹264,700    │
-│  ───────────────────────────────────────────────│
-│  Thank you for shopping with Kreta-Bandhu!      │
-│  For support: support@kreta-bandhu.com          │
-└─────────────────────────────────────────────────┘
-```
-
-### **API Endpoints**
-```http
-# Generate invoice for existing order
-GET /api/orders/:order_id/invoice
-
-# Place order (auto-generates invoice)
-POST /api/orders
-→ Returns: { order_id, invoice_number, invoice_url }
-
-# Checkout cart (auto-generates invoice)
-POST /api/orders/checkout
-→ Returns: { order_id, invoice_number, invoice_url }
-```
 
 ---
 
@@ -1020,13 +782,6 @@ node databaseServer.js
 4. Check browser console for AudioContext errors
 
 ---
-
-### **Orb not rendering**
-1. Check WebGL support: Visit `https://get.webgl.org/`
-2. Update graphics drivers
-3. Try disabling hardware acceleration in browser
-4. Check console for shader compilation errors
-
 ---
 
 ### **Barge-in not working**
@@ -1036,33 +791,6 @@ node databaseServer.js
 4. Verify bot is actually speaking when you interrupt
 
 ---
-
-## 🚢 Production Deployment
-
-### **Frontend (Vercel/Netlify)**
-```bash
-cd "Lumina Support"
-npm run build
-# Upload dist/ folder
-```
-
-**Environment Variables:**
-- `VITE_GEMINI_API_KEY`
-- `VITE_MURF_API_KEY`
-- `VITE_API_BASE_URL` (your backend URL)
-
----
-
-### **Backend (Railway/Render)**
-```bash
-cd server
-# Add Procfile
-echo "web: node databaseServer.js" > Procfile
-```
-
-**Environment Variables:**
-- `PORT=3005`
-- Enable SQLite persistent storage
 
 ---
 
@@ -1120,7 +848,6 @@ This project is licensed under the MIT License.
 
 For issues, questions, or feature requests:
 - 🐛 GitHub Issues: [Create Issue](https://github.com/Surfing-Ninja/MURF_AI_VOICE_AGENT/issues)
-- 💬 Discord: [Join Community](#)
 
 ---
 
@@ -1144,4 +871,3 @@ For issues, questions, or feature requests:
 
 *Powered by Murf Falcon TTS for human-like voice interactions*
 
-*Last Updated: December 3, 2025*

@@ -3,6 +3,8 @@ import './ProfileCard.css';
 
 interface ProfileCardProps {
   avatarUrl: string;
+  iconUrl?: string;
+  grainUrl?: string;
   name?: string;
   title?: string;
   handle?: string;
@@ -11,11 +13,15 @@ interface ProfileCardProps {
   showUserInfo?: boolean;
   enableTilt?: boolean;
   className?: string;
+  behindGlowColor?: string;
+  behindGlowSize?: string;
   onContactClick?: () => void;
 }
 
 const ProfileCardComponent: React.FC<ProfileCardProps> = ({
   avatarUrl,
+  iconUrl,
+  grainUrl,
   name = 'Developer',
   title = 'Software Engineer',
   handle = 'dev',
@@ -24,6 +30,8 @@ const ProfileCardComponent: React.FC<ProfileCardProps> = ({
   showUserInfo = true,
   enableTilt = true,
   className = '',
+  behindGlowColor = 'rgba(125, 190, 255, 0.67)',
+  behindGlowSize = '50%',
   onContactClick
 }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -114,8 +122,16 @@ const ProfileCardComponent: React.FC<ProfileCardProps> = ({
     onContactClick?.();
   }, [onContactClick]);
 
+  // Create CSS custom properties for icon and grain
+  const cardStyle = useMemo(() => ({
+    '--icon': iconUrl ? `url(${iconUrl})` : 'none',
+    '--grain': grainUrl ? `url(${grainUrl})` : 'none',
+    '--behind-glow-color': behindGlowColor,
+    '--behind-glow-size': behindGlowSize,
+  } as React.CSSProperties), [iconUrl, grainUrl, behindGlowColor, behindGlowSize]);
+
   return (
-    <div ref={wrapRef} className={`pc-card-wrapper ${className}`}>
+    <div ref={wrapRef} className={`pc-card-wrapper ${className}`} style={cardStyle}>
       <div className="pc-behind"></div>
       <div ref={shellRef} className="pc-card-shell">
         <div className="pc-card">

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <defs>
+    <!-- Heavy film grain - base layer -->
+    <filter id="heavyGrain" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="5" stitchTiles="stitch" seed="1" result="noise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncR type="linear" slope="1.5" intercept="-0.1"/>
+        <feFuncG type="linear" slope="1.5" intercept="-0.1"/>
+        <feFuncB type="linear" slope="1.5" intercept="-0.1"/>
+        <feFuncA type="linear" slope="0.7"/>
+      </feComponentTransfer>
+    </filter>
+    
+    <!-- Medium contrast grain -->
+    <filter id="mediumGrain" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="4" stitchTiles="stitch" seed="3" result="noise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5"/>
+      </feComponentTransfer>
+    </filter>
+    
+    <!-- Coarse dust particles -->
+    <filter id="dustGrain" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="turbulence" baseFrequency="0.35" numOctaves="6" stitchTiles="stitch" seed="7" result="dust"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncR type="discrete" tableValues="0 0.2 0.4 0.6 0.8 1"/>
+        <feFuncG type="discrete" tableValues="0 0.2 0.4 0.6 0.8 1"/>
+        <feFuncB type="discrete" tableValues="0 0.2 0.4 0.6 0.8 1"/>
+        <feFuncA type="linear" slope="0.35"/>
+      </feComponentTransfer>
+    </filter>
+    
+    <!-- Ultra-fine detail grain -->
+    <filter id="fineGrain" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="3.0" numOctaves="3" stitchTiles="stitch" seed="11" result="fine"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.25"/>
+      </feComponentTransfer>
+    </filter>
+    
+    <!-- Scratchy film texture -->
+    <filter id="scratchGrain" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="turbulence" baseFrequency="0.05 2" numOctaves="2" stitchTiles="stitch" seed="13"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.18"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  
+  <!-- Layer 1: Heavy base grain -->
+  <rect width="100%" height="100%" filter="url(#heavyGrain)" opacity="0.75"/>
+  
+  <!-- Layer 2: Medium texture -->
+  <rect width="100%" height="100%" filter="url(#mediumGrain)" opacity="0.55"/>
+  
+  <!-- Layer 3: Dust particles -->
+  <rect width="100%" height="100%" filter="url(#dustGrain)" opacity="0.45"/>
+  
+  <!-- Layer 4: Fine detail -->
+  <rect width="100%" height="100%" filter="url(#fineGrain)" opacity="0.4"/>
+  
+  <!-- Layer 5: Film scratches -->
+  <rect width="100%" height="100%" filter="url(#scratchGrain)" opacity="0.2"/>
+</svg>
