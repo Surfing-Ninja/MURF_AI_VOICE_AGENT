@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Zap, Shield, ArrowRight, Activity, Home, User, Briefcase, FileText } from 'lucide-react';
+import { Mic, Zap, Shield, ArrowRight, Activity, Home, User, Briefcase, Users } from 'lucide-react';
 import { DottedSurface } from '../components/DottedSurface';
 import HolographicCard from '../components/HolographicCard';
 import CustomCursor from '../components/CustomCursor';
@@ -16,7 +16,7 @@ const LandingPage: React.FC = () => {
         { name: 'Home', url: '#', icon: Home },
         { name: 'Features', url: '#features', icon: Briefcase },
         { name: 'Demo', url: '#demo', icon: User },
-        { name: 'Docs', url: '#', icon: FileText }
+        { name: "About Dev's", url: '/about', icon: Users }
     ];
 
     // Show loading screen first

@@ -465,9 +465,10 @@ const AgentInterface: React.FC = () => {
     setCartItems(prevItems => {
       const existingIndex = prevItems.findIndex(item => item.id === product.id);
       
+      let newItems: CartItem[];
       if (existingIndex !== -1) {
         // Update existing item quantity - cap at stock level
-        const newItems = [...prevItems];
+        newItems = [...prevItems];
         const currentQty = newItems[existingIndex].cartQuantity;
         const maxAllowed = product.stock - currentQty;
         const actualQuantityToAdd = Math.min(quantity, maxAllowed);
@@ -481,33 +482,47 @@ const AgentInterface: React.FC = () => {
           ...newItems[existingIndex],
           cartQuantity: currentQty + actualQuantityToAdd
         };
-        return newItems;
       } else {
         // Add new item - cap at stock level
         const actualQuantity = Math.min(quantity, product.stock);
         if (actualQuantity <= 0) return prevItems;
-        return [...prevItems, { ...product, cartQuantity: actualQuantity }];
+        newItems = [...prevItems, { ...product, cartQuantity: actualQuantity }];
       }
+      
+      // Immediately sync the ref so agent can see the update
+      cartItemsRef.current = newItems;
+      return newItems;
     });
   }, []);
 
   const handleRemoveFromCart = useCallback((productId: number) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+    setCartItems(prevItems => {
+      const newItems = prevItems.filter(item => item.id !== productId);
+      // Immediately sync the ref so agent can see the update
+      cartItemsRef.current = newItems;
+      return newItems;
+    });
   }, []);
 
   const handleUpdateCartQuantity = useCallback((productId: number, quantity: number) => {
     setCartItems(prevItems => {
+      let newItems: CartItem[];
       if (quantity <= 0) {
-        return prevItems.filter(item => item.id !== productId);
+        newItems = prevItems.filter(item => item.id !== productId);
+      } else {
+        newItems = prevItems.map(item => {
+          if (item.id === productId) {
+            // Cap quantity at stock level
+            const cappedQuantity = Math.min(quantity, item.stock);
+            return { ...item, cartQuantity: cappedQuantity };
+          }
+          return item;
+        });
       }
-      return prevItems.map(item => {
-        if (item.id === productId) {
-          // Cap quantity at stock level
-          const cappedQuantity = Math.min(quantity, item.stock);
-          return { ...item, cartQuantity: cappedQuantity };
-        }
-        return item;
-      });
+      
+      // Immediately sync the ref so agent can see the update
+      cartItemsRef.current = newItems;
+      return newItems;
     });
   }, []);
 
@@ -1155,27 +1170,48 @@ const AgentInterface: React.FC = () => {
                       // Calculate new cart state
                       const currentCart = cartItemsRef.current;
                       const existingIndex = currentCart.findIndex(item => item.id === product.id);
-                      let newCart: CartItem[];
                       
-                      if (existingIndex !== -1) {
-                        newCart = [...currentCart];
-                        newCart[existingIndex] = {
-                          ...newCart[existingIndex],
-                          cartQuantity: newCart[existingIndex].cartQuantity + quantity
-                        };
+                      // Calculate current quantity in cart for this product
+                      const currentQtyInCart = existingIndex !== -1 ? currentCart[existingIndex].cartQuantity : 0;
+                      const availableStock = product.stock - currentQtyInCart;
+                      
+                      // Check if requested quantity exceeds available stock
+                      if (quantity > availableStock) {
+                        if (availableStock <= 0) {
+                          result = { 
+                            status: 'error', 
+                            message: `Cannot add ${product.name} to cart. You already have ${currentQtyInCart} in cart which is the maximum stock available (${product.stock} units).`
+                          };
+                        } else {
+                          result = { 
+                            status: 'error', 
+                            message: `Cannot add ${quantity} units of ${product.name}. Only ${availableStock} more units available (Stock: ${product.stock}, Already in cart: ${currentQtyInCart}). Would you like to add ${availableStock} instead?`
+                          };
+                        }
                       } else {
-                        newCart = [...currentCart, { ...product, cartQuantity: quantity }];
+                        let newCart: CartItem[];
+                        
+                        if (existingIndex !== -1) {
+                          newCart = [...currentCart];
+                          newCart[existingIndex] = {
+                            ...newCart[existingIndex],
+                            cartQuantity: newCart[existingIndex].cartQuantity + quantity
+                          };
+                        } else {
+                          newCart = [...currentCart, { ...product, cartQuantity: quantity }];
+                        }
+                        
+                        // Update both state and ref immediately
+                        cartItemsRef.current = newCart;
+                        setCartItems(newCart);
+                        
+                        const totalInCart = existingIndex !== -1 ? newCart[existingIndex].cartQuantity : quantity;
+                        result = { 
+                          status: 'success', 
+                          message: `Added ${quantity}x ${product.name} to cart. You now have ${totalInCart} units in cart (${product.stock - totalInCart} remaining in stock).`,
+                          product: { name: product.name, price: product.price, quantity }
+                        };
                       }
-                      
-                      // Update both state and ref immediately
-                      cartItemsRef.current = newCart;
-                      setCartItems(newCart);
-                      
-                      result = { 
-                        status: 'success', 
-                        message: `Added ${quantity}x ${product.name} to cart. Cart now has ${newCart.length} item(s).`,
-                        product: { name: product.name, price: product.price, quantity }
-                      };
                     } else {
                       result = { status: 'not_found', message: `Product "${productName}" not found. Please search for available products first.` };
                     }
@@ -1314,7 +1350,18 @@ const AgentInterface: React.FC = () => {
                 let responseText = '';
                 if (name === "place_order") {
                   if (result.status === 'success') {
-                    responseText = `Order placed successfully! Order ID: ${result.order_id}. Item: ${result.details?.item}, Quantity: ${result.details?.quantity}, Delivery Date: ${result.details?.delivery_date}`;
+                    // Show order confirmation with invoice for direct orders too
+                    setOrderConfirmation({
+                      show: true,
+                      orderId: result.order_id,
+                      deliveryDate: result.details?.delivery_date,
+                      totalAmount: result.details?.total || 0,
+                      itemCount: 1,
+                      returnPolicy: '30-day easy return policy',
+                      invoiceNumber: result.invoice_number,
+                      invoiceUrl: result.invoice_url
+                    });
+                    responseText = `Order placed successfully! Order ID: ${result.order_id}. Item: ${result.details?.item}, Quantity: ${result.details?.quantity}, Total: ₹${result.details?.total || 'N/A'}, Delivery Date: ${result.details?.delivery_date}. Your invoice has been generated.`;
                   } else {
                     responseText = `Failed to place order: ${result.message}`;
                   }

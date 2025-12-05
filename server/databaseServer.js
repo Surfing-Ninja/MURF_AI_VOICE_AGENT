@@ -444,10 +444,11 @@ app.get('/api/orders/:id', (req, res) => {
 });
 
 // Place Order
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
     console.log(`[POST] /api/orders body:`, req.body);
     const { item_name, quantity, address, customer_name } = req.body;
     const orderId = `ORD-${Math.floor(10000 + Math.random() * 90000)}`; // 5 digit random ID
+    const invoiceNumber = `INV-${orderId}`;
     const orderDate = new Date().toISOString().split('T')[0];
 
     // Calculate delivery date (random 2-5 days)
@@ -456,23 +457,30 @@ app.post('/api/orders', (req, res) => {
     const deliveryDate = delivery.toISOString().split('T')[0];
 
     // Check stock first
-    db.get("SELECT * FROM products WHERE name LIKE ?", [`%${item_name}%`], (err, product) => {
+    db.get("SELECT * FROM products WHERE name LIKE ?", [`%${item_name}%`], async (err, product) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
         }
 
+        let productPrice = 0;
+        let totalAmount = 0;
+
         if (!product) {
             // Allow ordering even if not in DB for demo flexibility, but warn
             console.log(`Product ${item_name} not found in DB, proceeding anyway.`);
+            productPrice = 0;
         } else if (product.stock < quantity) {
             res.json({ status: 'error', message: `Insufficient stock. Only ${product.stock} left.` });
             return;
+        } else {
+            productPrice = product.price;
+            totalAmount = product.price * quantity;
         }
 
         // Insert Order
-        const stmt = db.prepare("INSERT INTO orders (id, customer_name, product_name, quantity, status, delivery_date, order_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        stmt.run(orderId, customer_name || 'Guest', item_name, quantity, 'Processing', deliveryDate, orderDate, function (err) {
+        const stmt = db.prepare("INSERT INTO orders (id, customer_name, product_name, quantity, customer_address, status, delivery_date, order_date, total_amount, invoice_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        stmt.run(orderId, customer_name || 'Guest', item_name, quantity, address || '', 'Processing', deliveryDate, orderDate, totalAmount, invoiceNumber, async function (err) {
             if (err) {
                 res.status(500).json({ error: err.message });
                 return;
@@ -491,11 +499,133 @@ app.post('/api/orders', (req, res) => {
                 });
             }
 
+            // Generate PDF Invoice
+            try {
+                const invoicesDir = path.join(__dirname, 'invoices');
+                if (!fs.existsSync(invoicesDir)) {
+                    fs.mkdirSync(invoicesDir, { recursive: true });
+                }
+
+                const invoicePath = path.join(invoicesDir, `${invoiceNumber}.pdf`);
+                
+                await new Promise((resolve, reject) => {
+                    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+                    const writeStream = fs.createWriteStream(invoicePath);
+                    
+                    writeStream.on('finish', () => {
+                        console.log(`[PlaceOrder] Invoice PDF generated: ${invoicePath}`);
+                        resolve();
+                    });
+                    writeStream.on('error', reject);
+                    
+                    doc.pipe(writeStream);
+
+                    // Company Header
+                    doc.fontSize(28)
+                       .fillColor('#c87d4a')
+                       .text('Kreta-Bandhu', { align: 'center' });
+                    
+                    doc.fontSize(11)
+                       .fillColor('#999')
+                       .text('Your Trusted Shopping Partner', { align: 'center' });
+                    
+                    doc.moveDown(1.5);
+
+                    // INVOICE Title
+                    doc.fontSize(20)
+                       .fillColor('#333')
+                       .text('INVOICE', { align: 'center' });
+                    
+                    doc.moveDown(1);
+
+                    // Invoice Details (Right Aligned)
+                    const detailsX = 350;
+                    doc.fontSize(10).fillColor('#666');
+                    doc.text(`Invoice No: ${invoiceNumber}`, detailsX, doc.y, { align: 'right' });
+                    doc.text(`Order ID: ${orderId}`, detailsX, doc.y, { align: 'right' });
+                    doc.text(`Date: ${orderDate}`, detailsX, doc.y, { align: 'right' });
+                    
+                    doc.moveDown(2);
+
+                    // Bill To Section
+                    doc.fontSize(11).fillColor('#333').text('Bill To:', 50, doc.y);
+                    doc.moveDown(0.3);
+                    doc.fontSize(10).fillColor('#666');
+                    doc.text(`Name: ${customer_name || 'Guest'}`, 50, doc.y);
+                    if (address) {
+                        doc.text(`Address: ${address}`, 50, doc.y);
+                    }
+                    
+                    doc.moveDown(2);
+
+                    // Table Header with underline
+                    const tableTop = doc.y;
+                    doc.fontSize(10).fillColor('#666');
+                    doc.text('Item', 50, tableTop, { width: 200 });
+                    doc.text('Qty', 280, tableTop, { width: 80, align: 'center' });
+                    doc.text('Price', 360, tableTop, { width: 100, align: 'right' });
+                    doc.text('Total', 460, tableTop, { width: 100, align: 'right' });
+                    
+                    // Horizontal line under header
+                    doc.moveDown(0.3);
+                    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ddd');
+                    doc.moveDown(0.5);
+
+                    // Item
+                    const itemY = doc.y;
+                    doc.fontSize(10).fillColor('#444');
+                    doc.text(item_name, 50, itemY, { width: 220 });
+                    doc.text(quantity.toString(), 280, itemY, { width: 80, align: 'center' });
+                    doc.text(`Rs.${productPrice.toLocaleString('en-IN')}`, 360, itemY, { width: 100, align: 'right' });
+                    doc.text(`Rs.${totalAmount.toLocaleString('en-IN')}`, 460, itemY, { width: 100, align: 'right' });
+                    doc.moveDown(1.5);
+
+                    // Horizontal line before totals
+                    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ddd');
+                    doc.moveDown(0.8);
+
+                    // Total
+                    const totalsX = 460;
+                    doc.fontSize(12).fillColor('#c87d4a');
+                    doc.text('Total:', 360, doc.y, { width: 100, align: 'right', bold: true });
+                    doc.text(`Rs.${totalAmount.toLocaleString('en-IN')}`, totalsX, doc.y - 14, { width: 100, align: 'right' });
+                    
+                    doc.moveDown(2);
+
+                    // Payment & Status Info
+                    doc.fontSize(10).fillColor('#666');
+                    doc.text('Payment Method: COD', 50, doc.y);
+                    doc.text(`Expected Delivery: ${deliveryDate}`, 50, doc.y);
+                    
+                    doc.moveDown(1.5);
+
+                    // Return Policy
+                    doc.fontSize(9).fillColor('#999');
+                    doc.text('Return Policy: 30-day easy return policy. Products can be returned within 30 days of delivery.', 50, doc.y, { width: 500 });
+                    
+                    doc.moveDown(2.5);
+
+                    // Footer
+                    doc.fontSize(9).fillColor('#bbb');
+                    doc.text('Thank you for shopping with Kreta-Bandhu!', { align: 'center' });
+                    doc.text('For support: 1800-123-4567 | support@kreta-bandhu.com', { align: 'center' });
+
+                    doc.end();
+                });
+
+                console.log(`[PlaceOrder] Order ${orderId} placed successfully with invoice`);
+            } catch (invoiceErr) {
+                console.error(`[PlaceOrder] Failed to generate invoice:`, invoiceErr);
+                // Continue even if invoice fails
+            }
+
             res.json({
                 status: 'success',
                 order_id: orderId,
+                invoice_number: invoiceNumber,
+                invoice_url: `/invoices/${invoiceNumber}.pdf`,
                 message: `Order placed successfully! ID: ${orderId}`,
-                details: { item: item_name, quantity, delivery_date: deliveryDate }
+                details: { item: item_name, quantity, delivery_date: deliveryDate, price: productPrice, total: totalAmount }
             });
         });
         stmt.finalize();
@@ -560,18 +690,22 @@ app.post('/api/orders/checkout', async (req, res) => {
         subtotal: item.price * item.quantity
     }));
 
+    // Combine product names and total quantity for main order record
+    const combinedProductNames = items.map(item => item.name).join(', ');
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
     try {
-        // Insert Order into database
+        // Insert Order into database (including product_name and quantity)
         await new Promise((resolve, reject) => {
             db.run(`
                 INSERT INTO orders (
                     id, customer_name, customer_email, customer_phone, customer_address,
-                    status, order_date, delivery_date, subtotal, discount_amount, 
+                    product_name, quantity, status, order_date, delivery_date, subtotal, discount_amount, 
                     total_amount, payment_method, invoice_number
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 orderId, customer_name, customer_email || '', customer_phone || '', address,
-                'Processing', orderDate, deliveryDate, subtotal, discountAmount,
+                combinedProductNames, totalQuantity, 'Processing', orderDate, deliveryDate, subtotal, discountAmount,
                 totalAmount, payment_method || 'COD', invoiceNumber
             ], function(err) {
                 if (err) reject(err);
@@ -620,7 +754,10 @@ app.post('/api/orders/checkout', async (req, res) => {
         
         // Create PDF with promise
         await new Promise((resolve, reject) => {
-            const doc = new PDFDocument({ margin: 50 });
+            const doc = new PDFDocument({ 
+                margin: 50,
+                size: 'A4'
+            });
             const writeStream = fs.createWriteStream(invoicePath);
             
             writeStream.on('finish', () => {
@@ -631,85 +768,110 @@ app.post('/api/orders/checkout', async (req, res) => {
             
             doc.pipe(writeStream);
 
-            // Invoice Header
-            doc.fontSize(24).fillColor('#c87d4a').text('Kreta-Bandhu', { align: 'center' });
-            doc.fontSize(10).fillColor('#666').text('Your Trusted Shopping Partner', { align: 'center' });
-            doc.moveDown();
-
-            // Invoice Details Box
-            doc.fontSize(18).fillColor('#333').text('INVOICE', { align: 'center' });
-            doc.moveDown(0.5);
+            // Company Header
+            doc.fontSize(28)
+               .fillColor('#c87d4a')
+               .text('Kreta-Bandhu', { align: 'center' });
             
+            doc.fontSize(11)
+               .fillColor('#999')
+               .text('Your Trusted Shopping Partner', { align: 'center' });
+            
+            doc.moveDown(1.5);
+
+            // INVOICE Title
+            doc.fontSize(20)
+               .fillColor('#333')
+               .text('INVOICE', { align: 'center' });
+            
+            doc.moveDown(1);
+
+            // Invoice Details (Right Aligned)
+            const detailsX = 350;
             doc.fontSize(10).fillColor('#666');
-            doc.text(`Invoice No: ${invoiceNumber}`, { align: 'right' });
-            doc.text(`Order ID: ${orderId}`, { align: 'right' });
-            doc.text(`Date: ${new Date().toLocaleDateString('en-IN')}`, { align: 'right' });
-            doc.moveDown();
-
-            // Customer Details
-            doc.fontSize(12).fillColor('#333').text('Bill To:', { underline: true });
-            doc.fontSize(10).fillColor('#444');
-            doc.text(`Name: ${customer_name}`);
-            doc.text(`Address: ${address}`);
-            if (customer_phone) doc.text(`Phone: ${customer_phone}`);
-            if (customer_email) doc.text(`Email: ${customer_email}`);
-            doc.moveDown();
-
-            // Items Table Header
-            doc.fontSize(11).fillColor('#333');
-            const tableTop = doc.y;
-            doc.text('Item', 50, tableTop, { width: 200 });
-            doc.text('Qty', 260, tableTop, { width: 50, align: 'center' });
-            doc.text('Price', 320, tableTop, { width: 80, align: 'right' });
-            doc.text('Total', 410, tableTop, { width: 80, align: 'right' });
+            doc.text(`Invoice No: ${invoiceNumber}`, detailsX, doc.y, { align: 'right' });
+            doc.text(`Order ID: ${orderId}`, detailsX, doc.y, { align: 'right' });
+            const formattedDate = new Date().toLocaleDateString('en-GB').split('/').join('/');
+            doc.text(`Date: ${formattedDate.split('/').reverse().join('-')}`, detailsX, doc.y, { align: 'right' });
             
-            doc.moveTo(50, doc.y + 5).lineTo(550, doc.y + 5).stroke('#ddd');
+            doc.moveDown(2);
+
+            // Bill To Section
+            doc.fontSize(11).fillColor('#333').text('Bill To:', 50, doc.y);
+            doc.moveDown(0.3);
+            doc.fontSize(10).fillColor('#666');
+            doc.text(`Name: ${customer_name}`, 50, doc.y);
+            doc.text(`Address: ${address}`, 50, doc.y);
+            
+            doc.moveDown(2);
+
+            // Table Header with underline
+            const tableTop = doc.y;
+            doc.fontSize(10).fillColor('#666');
+            doc.text('Item', 50, tableTop, { width: 200 });
+            doc.text('Qty', 280, tableTop, { width: 80, align: 'center' });
+            doc.text('Price', 360, tableTop, { width: 100, align: 'right' });
+            doc.text('Total', 460, tableTop, { width: 100, align: 'right' });
+            
+            // Horizontal line under header
+            doc.moveDown(0.3);
+            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ddd');
             doc.moveDown(0.5);
 
             // Items
-            doc.fontSize(10).fillColor('#444');
-            insertedItems.forEach(item => {
+            insertedItems.forEach((item, index) => {
                 const itemY = doc.y;
-                doc.text(item.name, 50, itemY, { width: 200 });
-                doc.text(item.quantity.toString(), 260, itemY, { width: 50, align: 'center' });
-                doc.text(`Rs.${item.price.toLocaleString()}`, 320, itemY, { width: 80, align: 'right' });
-                doc.text(`Rs.${item.subtotal.toLocaleString()}`, 410, itemY, { width: 80, align: 'right' });
-                doc.moveDown(0.5);
+                doc.fontSize(10).fillColor('#444');
+                doc.text(item.name, 50, itemY, { width: 220 });
+                doc.text(item.quantity.toString(), 280, itemY, { width: 80, align: 'center' });
+                doc.text(`Rs.${item.price.toLocaleString('en-IN')}`, 360, itemY, { width: 100, align: 'right' });
+                doc.text(`Rs.${item.subtotal.toLocaleString('en-IN')}`, 460, itemY, { width: 100, align: 'right' });
+                doc.moveDown(0.8);
             });
 
-            doc.moveTo(50, doc.y + 5).lineTo(550, doc.y + 5).stroke('#ddd');
-            doc.moveDown();
-
-            // Totals
-            doc.fontSize(10).fillColor('#444');
-            doc.text(`Subtotal:`, 320, doc.y, { width: 80, align: 'right' });
-            doc.text(`Rs.${subtotal.toLocaleString()}`, 410, doc.y - 12, { width: 80, align: 'right' });
-            doc.moveDown(0.3);
+            doc.moveDown(0.5);
             
+            // Horizontal line before totals
+            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ddd');
+            doc.moveDown(0.8);
+
+            // Subtotal
+            const totalsX = 460;
+            doc.fontSize(10).fillColor('#666');
+            doc.text('Subtotal:', 360, doc.y, { width: 100, align: 'right' });
+            doc.text(`Rs.${subtotal.toLocaleString('en-IN')}`, totalsX, doc.y - 12, { width: 100, align: 'right' });
+            doc.moveDown(0.5);
+            
+            // Discount (if applicable)
             if (discountAmount > 0) {
-                doc.fillColor('#22c55e').text(`Discount (10%):`, 320, doc.y, { width: 80, align: 'right' });
-                doc.text(`-Rs.${discountAmount.toLocaleString()}`, 410, doc.y - 12, { width: 80, align: 'right' });
-                doc.moveDown(0.3);
+                doc.fillColor('#22c55e');
+                doc.text('Discount (10%):', 360, doc.y, { width: 100, align: 'right' });
+                doc.text(`-Rs.${discountAmount.toLocaleString('en-IN')}`, totalsX, doc.y - 12, { width: 100, align: 'right' });
+                doc.moveDown(0.5);
             }
 
+            // Total
             doc.fontSize(12).fillColor('#c87d4a');
-            doc.text(`Total:`, 320, doc.y, { width: 80, align: 'right' });
-            doc.text(`Rs.${totalAmount.toLocaleString()}`, 410, doc.y - 14, { width: 80, align: 'right' });
-            doc.moveDown(1.5);
+            doc.text('Total:', 360, doc.y, { width: 100, align: 'right', bold: true });
+            doc.text(`Rs.${totalAmount.toLocaleString('en-IN')}`, totalsX, doc.y - 14, { width: 100, align: 'right' });
+            
+            doc.moveDown(2);
 
             // Payment & Delivery Info
             doc.fontSize(10).fillColor('#666');
-            doc.text(`Payment Method: ${payment_method || 'Cash on Delivery'}`);
-            doc.text(`Expected Delivery: ${deliveryDate}`);
-            doc.moveDown();
+            doc.text(`Payment Method: ${payment_method || 'COD'}`, 50, doc.y);
+            doc.text(`Expected Delivery: ${deliveryDate}`, 50, doc.y);
+            
+            doc.moveDown(1.5);
 
             // Return Policy
-            doc.fontSize(9).fillColor('#888');
-            doc.text('Return Policy: ' + returnPolicy.policy, { width: 450 });
-            doc.moveDown(2);
+            doc.fontSize(9).fillColor('#999');
+            doc.text(`Return Policy: ${returnPolicy.policy}`, 50, doc.y, { width: 500 });
+            
+            doc.moveDown(2.5);
 
             // Footer
-            doc.fontSize(8).fillColor('#aaa');
+            doc.fontSize(9).fillColor('#bbb');
             doc.text('Thank you for shopping with Kreta-Bandhu!', { align: 'center' });
             doc.text('For support: 1800-123-4567 | support@kreta-bandhu.com', { align: 'center' });
 
@@ -901,29 +1063,107 @@ app.get('/api/orders/:id/invoice', (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         if (!order) return res.status(404).json({ error: 'Order not found' });
 
-        const doc = new PDFDocument();
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=invoice-${id}.pdf`);
 
         doc.pipe(res);
 
-        doc.fontSize(25).text('क्रेता-बन्धु Support Invoice', 100, 80);
-        doc.fontSize(12).text(`Invoice Number: INV-${id}`, 100, 150);
-        doc.text(`Order ID: ${id}`, 100, 170);
-        doc.text(`Date: ${order.order_date}`, 100, 190);
-        doc.text(`Customer: ${order.customer_name}`, 100, 210);
+        // Company Header
+        doc.fontSize(28)
+           .fillColor('#c87d4a')
+           .text('Kreta-Bandhu', { align: 'center' });
+        
+        doc.fontSize(11)
+           .fillColor('#999')
+           .text('Your Trusted Shopping Partner', { align: 'center' });
+        
+        doc.moveDown(1.5);
 
-        doc.moveDown();
-        doc.text(`Item: ${order.product_name}`);
-        doc.text(`Quantity: ${order.quantity}`);
-        doc.text(`Status: ${order.status}`);
+        // INVOICE Title
+        doc.fontSize(20)
+           .fillColor('#333')
+           .text('INVOICE', { align: 'center' });
+        
+        doc.moveDown(1);
 
-        if (order.discount_code) {
-            doc.text(`Discount Applied: ${order.discount_code}`);
+        // Invoice Details (Right Aligned)
+        const detailsX = 350;
+        doc.fontSize(10).fillColor('#666');
+        doc.text(`Invoice No: INV-${id}`, detailsX, doc.y, { align: 'right' });
+        doc.text(`Order ID: ${id}`, detailsX, doc.y, { align: 'right' });
+        const formattedDate = new Date(order.order_date).toLocaleDateString('en-GB').split('/').reverse().join('-');
+        doc.text(`Date: ${formattedDate}`, detailsX, doc.y, { align: 'right' });
+        
+        doc.moveDown(2);
+
+        // Bill To Section
+        doc.fontSize(11).fillColor('#333').text('Bill To:', 50, doc.y);
+        doc.moveDown(0.3);
+        doc.fontSize(10).fillColor('#666');
+        doc.text(`Name: ${order.customer_name}`, 50, doc.y);
+        if (order.customer_address) {
+            doc.text(`Address: ${order.customer_address}`, 50, doc.y);
         }
+        
+        doc.moveDown(2);
 
-        doc.moveDown();
-        doc.fontSize(16).text('Total: Paid', { align: 'right' });
+        // Table Header with underline
+        const tableTop = doc.y;
+        doc.fontSize(10).fillColor('#666');
+        doc.text('Item', 50, tableTop, { width: 200 });
+        doc.text('Qty', 280, tableTop, { width: 80, align: 'center' });
+        doc.text('Price', 360, tableTop, { width: 100, align: 'right' });
+        doc.text('Total', 460, tableTop, { width: 100, align: 'right' });
+        
+        // Horizontal line under header
+        doc.moveDown(0.3);
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ddd');
+        doc.moveDown(0.5);
+
+        // Item
+        const itemY = doc.y;
+        doc.fontSize(10).fillColor('#444');
+        doc.text(order.product_name, 50, itemY, { width: 220 });
+        doc.text(order.quantity.toString(), 280, itemY, { width: 80, align: 'center' });
+        const price = order.total_amount ? (order.total_amount / order.quantity) : 0;
+        const total = order.total_amount || 0;
+        doc.text(`Rs.${price.toLocaleString('en-IN')}`, 360, itemY, { width: 100, align: 'right' });
+        doc.text(`Rs.${total.toLocaleString('en-IN')}`, 460, itemY, { width: 100, align: 'right' });
+        doc.moveDown(1.5);
+
+        // Horizontal line before totals
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ddd');
+        doc.moveDown(0.8);
+
+        // Total
+        const totalsX = 460;
+        doc.fontSize(12).fillColor('#c87d4a');
+        doc.text('Total:', 360, doc.y, { width: 100, align: 'right', bold: true });
+        doc.text(`Rs.${total.toLocaleString('en-IN')}`, totalsX, doc.y - 14, { width: 100, align: 'right' });
+        
+        doc.moveDown(2);
+
+        // Payment & Status Info
+        doc.fontSize(10).fillColor('#666');
+        doc.text(`Payment Method: ${order.payment_method || 'COD'}`, 50, doc.y);
+        doc.text(`Status: ${order.status}`, 50, doc.y);
+        if (order.delivery_date) {
+            doc.text(`Expected Delivery: ${order.delivery_date}`, 50, doc.y);
+        }
+        
+        doc.moveDown(1.5);
+
+        // Return Policy
+        doc.fontSize(9).fillColor('#999');
+        doc.text('Return Policy: 30-day easy return policy. Products can be returned within 30 days of delivery.', 50, doc.y, { width: 500 });
+        
+        doc.moveDown(2.5);
+
+        // Footer
+        doc.fontSize(9).fillColor('#bbb');
+        doc.text('Thank you for shopping with Kreta-Bandhu!', { align: 'center' });
+        doc.text('For support: 1800-123-4567 | support@kreta-bandhu.com', { align: 'center' });
 
         doc.end();
     });

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { LucideIcon } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { cn } from "../utils/cn"
 
 interface NavItem {
@@ -19,6 +20,7 @@ interface NavBarProps {
 export function TubelightNavbar({ items, className }: NavBarProps) {
     const [activeTab, setActiveTab] = useState(items[0].name)
     const [isMobile, setIsMobile] = useState(false)
+    const navigate = useNavigate()
 
     useEffect(() => {
         const handleResize = () => {
@@ -41,6 +43,7 @@ export function TubelightNavbar({ items, className }: NavBarProps) {
                 {items.map((item) => {
                     const Icon = item.icon
                     const isActive = activeTab === item.name
+                    const isExternalLink = item.url.startsWith('/') && !item.url.startsWith('#')
 
                     return (
                         <a
@@ -48,7 +51,10 @@ export function TubelightNavbar({ items, className }: NavBarProps) {
                             href={item.url}
                             onClick={(e) => {
                                 setActiveTab(item.name)
-                                if (item.url.startsWith('#')) {
+                                if (isExternalLink) {
+                                    e.preventDefault()
+                                    navigate(item.url)
+                                } else if (item.url.startsWith('#')) {
                                     e.preventDefault()
                                     if (item.url === '#') {
                                         window.scrollTo({ top: 0, behavior: "smooth" })
