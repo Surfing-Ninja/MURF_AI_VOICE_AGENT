@@ -10,10 +10,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3005;
+const PORT = process.env.PORT || 3005;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        /\.onrender\.com$/  // Allow all Render deployments
+    ],
+    credentials: true
+}));
 app.use(express.json());
 
 // Serve static invoices

@@ -9,6 +9,9 @@ import { ProductGrid, Product } from '../components/ui/ProductCard';
 import PopUpCart, { CartItem } from '../components/ui/PopUpCart';
 import { useNavigate } from 'react-router-dom';
 
+// --- API Configuration ---
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3005';
+
 // --- Configuration ---
 const SYSTEM_INSTRUCTION = `You are a friendly and knowledgeable customer support agent for "क्रेता-बन्धु" (formerly DesiMart), a premium online lifestyle store. 
 Your tone is professional, warm, and conversational. 
@@ -542,7 +545,7 @@ const AgentInterface: React.FC = () => {
 
     setIsCheckingOut(true);
     try {
-      const response = await fetch('http://localhost:3005/api/orders/checkout', {
+      const response = await fetch(`${API_BASE_URL}/api/orders/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1161,7 +1164,7 @@ const AgentInterface: React.FC = () => {
                     console.log(`[Tool] Adding ${quantity}x ${productName} to cart...`);
                     
                     // Search for product first
-                    const response = await fetch(`http://localhost:3005/api/products?search=${encodeURIComponent(productName)}`);
+                    const response = await fetch(`${API_BASE_URL}/api/products?search=${encodeURIComponent(productName)}`);
                     const data = await response.json();
                     
                     if (data.products && data.products.length > 0) {
@@ -1286,7 +1289,7 @@ const AgentInterface: React.FC = () => {
                       console.log(`[Tool] Sending checkout request with items:`, checkoutItems);
                       
                       try {
-                        const response = await fetch('http://localhost:3005/api/orders/checkout', {
+                        const response = await fetch(`${API_BASE_URL}/api/orders/checkout`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
@@ -2055,7 +2058,7 @@ const AgentInterface: React.FC = () => {
             <div className="flex gap-3">
               {orderConfirmation.invoiceUrl && (
                 <a 
-                  href={`http://localhost:3005${orderConfirmation.invoiceUrl}`}
+                  href={`${API_BASE_URL}${orderConfirmation.invoiceUrl}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-3 rounded-xl bg-charcoal-700 hover:bg-charcoal-600 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
