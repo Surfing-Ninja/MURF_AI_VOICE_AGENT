@@ -102,6 +102,8 @@ const AboutDevs: React.FC = () => {
                 
                 <ProfileCard
                   avatarUrl={dev.avatarUrl}
+                  iconUrl="/assets/code-icons.svg"
+                  grainUrl="/assets/grain.svg"
                   name={dev.name}
                   title={dev.title}
                   handle={dev.handle}
